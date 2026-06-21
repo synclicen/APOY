@@ -297,11 +297,20 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Compact status bar (replaces large footer) — keeps the app on one screen */}
-      <footer className="hidden md:flex h-8 shrink-0 items-center justify-center gap-3 border-t border-outline-variant/5 bg-surface/60 px-6 text-[9px] text-on-surface-variant/40 tracking-[0.2em] font-medium uppercase">
-        <span>Pusat Humas dan Keterbukaan Informasi</span>
-        <span className="opacity-30">•</span>
-        <span>© 2026-Made by Fajrianor---APOY-Add Photos, Originate Yours.</span>
+      {/* Three-line attribution footer — each line uses a distinct font style */}
+      <footer className="hidden md:flex flex-col h-14 shrink-0 items-center justify-center gap-0.5 border-t border-outline-variant/5 bg-surface/60 px-6">
+        {/* Line 1 — credit/attribution (monospace italic) */}
+        <span className="font-mono italic text-[10px] text-on-surface-variant/50 leading-tight">
+          © 2026-Made by Fajrianor
+        </span>
+        {/* Line 2 — brand headline (Manrope bold, primary color) */}
+        <span className="font-headline font-extrabold text-[12px] text-primary tracking-tight leading-tight">
+          APOY-Add Photos, Originate Yours
+        </span>
+        {/* Line 3 — institutional label (Inter uppercase, wide tracking) */}
+        <span className="font-label font-semibold text-[8px] text-on-surface-variant/60 tracking-[0.25em] uppercase leading-tight">
+          Pusat Humas dan Keterbukaan Informasi
+        </span>
       </footer>
     </div>
   );
