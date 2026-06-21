@@ -31,6 +31,7 @@ export interface AnalysisSettings {
   whiteBalanceAdjusted: boolean;
   autoFocusFace: boolean;
   autoCutToRatio: boolean;
+  preserveHumans: boolean;
   autoArrange: boolean;
   selectedCleanBase: string;
   objectFit: 'cover' | 'contain';

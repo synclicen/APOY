@@ -92,6 +92,7 @@ export default function App() {
     whiteBalanceAdjusted: false,
     autoFocusFace: false,
     autoCutToRatio: false,
+    preserveHumans: true,
     autoArrange: false,
     selectedCleanBase: 'neutral',
     objectFit: 'cover',

@@ -164,13 +164,13 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
           if (autoCutToRatio) {
             // AI Simulation: Move focal point to upper 35% (Rule of Thirds / Face Focus)
             // Also apply a slight dramatic zoom
-            const zoomFactor = 1.12; 
+            const zoomFactor = settings.preserveHumans ? 1.0 : 1.12; 
             const zoomedWidth = targetWidth / zoomFactor;
             const zoomedHeight = targetHeight / zoomFactor;
             
             sourceX = (img.width - zoomedWidth) / 2;
-            // Bias towards top for faces (usually in the upper 1/3)
-            sourceY = (img.height - zoomedHeight) * 0.38; 
+            // Bias towards top for faces (usually in the upper 1/3), unless preserving humans (center to preserve group)
+            sourceY = settings.preserveHumans ? (img.height - zoomedHeight) / 2 : (img.height - zoomedHeight) * 0.38; 
             
             if (autoArrange) {
               // Smart Leveling
@@ -390,18 +390,21 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
     try {
       if ('showDirectoryPicker' in window) {
         // Some browsers like Firefox don't support this, or it's blocked in iframes
-        const handle = await (window as any).showDirectoryPicker({
-          mode: 'readwrite',
-          startIn: 'pictures'
-        }).catch((err: any) => {
-          console.warn("Direct Picker blocked or cancelled. Reason:", err.name);
+        let handle;
+        try {
+          handle = await (window as any).showDirectoryPicker({
+            mode: 'readwrite',
+            id: 'apoy-export',
+            startIn: 'pictures'
+          });
+        } catch (err: any) {
+          console.warn("Direct Picker blocked or cancelled. Reason:", err.name, err.message);
           
-          if (err.name === 'SecurityError') {
-            alert("⚠️ SECURITY BLOCK: Browser security prevents APOY from touching your hard drive directly while inside this preview window.\n\nTo enable DIRECT SAVING:\n1. Open APOY in a 'New Tab'.\n2. Click 'Select Folder' again.\n\nOtherwise, use 'Batch ZIP Mode' below.");
+          if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
+            alert("⚠️ BROWSER SECURITY BLOCK ⚠️\n\nYour browser denies direct folder access inside this preview window.\n\nHOW TO FIX:\n1. Open APOY in a 'New Tab' (icon in top right).\n2. Click 'Select Folder' again.\n\nOtherwise, your photos will be safely grouped into a ZIP file in your regular Downloads folder.");
           }
-          
-          return null;
-        });
+          return;
+        }
 
         if (handle) {
           setDirectoryHandle(handle);
@@ -409,10 +412,10 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
           setDestination('local');
         }
       } else {
-        alert("Your browser does not support the Direct Folder API. All exports will be grouped into a single ZIP archive.");
+        alert("Your browser does not support the Direct Folder API. All exports will be automatically grouped into a single ZIP archive for you.");
       }
     } catch (e) {
-      console.log('Picker interaction failed or cancelled:', e);
+      console.error('Picker interaction failed:', e);
     }
   };
 

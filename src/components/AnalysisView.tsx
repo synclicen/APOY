@@ -104,6 +104,7 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
       whiteBalanceAdjusted: false,
       autoFocusFace: false,
       autoCutToRatio: false,
+      preserveHumans: true,
       autoArrange: false,
       objectFit: 'cover',
       watermarkEnabled: false,
@@ -555,7 +556,8 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                       mixBlendMode: selectedPlatform === 'li' ? 'luminosity' as any : 'normal' as any,
                       transform: cn(
                         lensCorrection ? 'scale(1.02)' : 'scale(1)',
-                        autoCutToRatio && "scale(1.15) translateY(-5%)",
+                        autoCutToRatio && !settings.preserveHumans && "scale(1.15) translateY(-5%)",
+                        autoCutToRatio && settings.preserveHumans && "scale(1.0) translateY(0)",
                         autoArrange && "scale(1.05) rotate(0.5deg)"
                       )
                     }}
@@ -709,7 +711,7 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <button
                 onClick={() => updateSetting('autoCutToRatio', !autoCutToRatio)}
                 className={cn(
@@ -728,6 +730,27 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                 </div>
                 <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", autoCutToRatio ? "border-on-primary" : "border-on-surface-variant/30")}>
                   {autoCutToRatio && <div className="w-2 h-2 bg-on-primary rounded-full" />}
+                </div>
+              </button>
+
+              <button
+                onClick={() => updateSetting('preserveHumans', !settings.preserveHumans)}
+                className={cn(
+                  "flex items-center justify-between p-4 rounded-2xl border transition-all",
+                  settings.preserveHumans 
+                    ? "bg-primary text-on-primary border-primary shadow-lg" 
+                    : "bg-surface-container border-transparent text-on-surface-variant hover:border-primary/30"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <UserCircle size={16} />
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase">Keep Subjects</p>
+                    <p className="text-[8px] opacity-70">Don't crop humans</p>
+                  </div>
+                </div>
+                <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", settings.preserveHumans ? "border-on-primary" : "border-on-surface-variant/30")}>
+                  {settings.preserveHumans && <div className="w-2 h-2 bg-on-primary rounded-full" />}
                 </div>
               </button>
 
