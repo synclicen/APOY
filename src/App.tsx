@@ -301,7 +301,7 @@ export default function App() {
       <footer className="hidden md:flex h-8 shrink-0 items-center justify-center gap-3 border-t border-outline-variant/5 bg-surface/60 px-6 text-[9px] text-on-surface-variant/40 tracking-[0.2em] font-medium uppercase">
         <span>Pusat Humas dan Keterbukaan Informasi</span>
         <span className="opacity-30">•</span>
-        <span>©2026-Made by Fajrianor---APOY-Add Photos, Originate Yours.</span>
+        <span>© 2026-Made by Fajrianor---APOY-Add Photos, Originate Yours.</span>
       </footer>
     </div>
   );
