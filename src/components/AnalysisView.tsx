@@ -1,20 +1,20 @@
+'use client';
+
 import React from 'react';
 import { motion } from 'motion/react';
-import { 
+import {
   RotateCcw,
   RotateCw,
-  ChevronRight, 
-  Instagram, 
-  Twitter, 
-  Globe, 
-  Zap, 
-  Focus, 
+  ChevronRight,
+  Instagram,
+  Twitter,
+  Globe,
+  Zap,
+  Focus,
   BrainCircuit,
-  Wand2,
-  Share2,
   CheckCircle2,
   AlertCircle,
-  Terminal,
+  Share2,
   Layers,
   Facebook,
   Linkedin,
@@ -24,10 +24,9 @@ import {
   Loader2,
   UserCircle,
   Pipette,
-  FileUp,
   ShieldCheck,
   Camera,
-  Maximize2
+  Maximize2,
 } from 'lucide-react';
 import { Photo, AnalysisSettings } from '../types';
 import { cn } from '../lib/utils';
@@ -51,22 +50,20 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
     selectedPreset,
     selectedFrame,
     selectedRatio,
-    exposure,
-    focus,
     lensCorrection,
     whiteBalanceAdjusted,
     autoFocusFace,
     autoCutToRatio,
     autoArrange,
     selectedCleanBase,
-    customFrameUrl
+    customFrameUrl,
   } = settings;
 
-  const updateSetting = (key: keyof AnalysisSettings, value: any) => {
+  const updateSetting = (key: keyof AnalysisSettings, value: unknown) => {
     onSettingsChange({ ...settings, [key]: value });
   };
 
-  const selectedPhotos = photos.filter(p => p.selected);
+  const selectedPhotos = photos.filter((p) => p.selected);
 
   const steps = [
     { id: 'platform', title: 'Target Platform', description: 'Where will these photos be published?' },
@@ -130,10 +127,10 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header & Stepper */}
-      <section className="space-y-6 px-4 md:px-0">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <section className="space-y-4 px-1 md:px-0">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-2xl md:text-4xl font-headline font-extrabold tracking-tight text-on-surface">
               Guided Analysis
@@ -143,7 +140,7 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
             </p>
           </div>
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={handleReset}
               className="px-4 py-2 bg-surface-container-high rounded-xl text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all flex items-center gap-2 text-xs"
             >
@@ -156,12 +153,12 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
         {/* Progress Bar */}
         <div className="flex gap-2 h-1.5 w-full">
           {steps.map((_, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className={cn(
-                "flex-1 rounded-full transition-all duration-500",
-                i <= activeStep ? "bg-primary" : "bg-surface-container-highest"
-              )} 
+                'flex-1 rounded-full transition-all duration-500',
+                i <= activeStep ? 'bg-primary' : 'bg-surface-container-highest'
+              )}
             />
           ))}
         </div>
@@ -170,7 +167,7 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
       <div className="grid grid-cols-12 gap-6">
         {/* Left Column: Active Step Controls */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
-          <motion.div 
+          <motion.div
             key={activeStep}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -192,10 +189,12 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <ShieldCheck size={16} className="text-primary" />
-                      <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">Clean Base Foundation</span>
+                      <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                        Clean Base Foundation
+                      </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                       {[
+                      {[
                         { id: 'neutral', label: 'Neutral Base', desc: 'Standard RAW prep' },
                         { id: 'portrait', label: 'Pro Portrait', desc: 'Soft skin texture' },
                         { id: 'landscape', label: 'Pro Landscape', desc: 'Distant clarity' },
@@ -205,10 +204,10 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                           key={base.id}
                           onClick={() => updateSetting('selectedCleanBase', base.id)}
                           className={cn(
-                            "flex flex-col items-start gap-1 p-3 rounded-xl transition-all border text-left active:scale-95",
-                            selectedCleanBase === base.id 
-                              ? "bg-primary/10 border-primary text-primary" 
-                              : "bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest"
+                            'flex flex-col items-start gap-1 p-3 rounded-xl transition-all border text-left active:scale-95',
+                            selectedCleanBase === base.id
+                              ? 'bg-primary/10 border-primary text-primary'
+                              : 'bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest'
                           )}
                         >
                           <span className="text-[10px] font-bold">{base.label}</span>
@@ -219,7 +218,9 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                   </div>
 
                   <div className="space-y-4">
-                    <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">Publishing Destination</span>
+                    <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                      Publishing Destination
+                    </span>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
                         { id: 'ig', label: 'Instagram', icon: Instagram },
@@ -235,14 +236,16 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                           key={platform.id}
                           onClick={() => updateSetting('selectedPlatform', platform.id)}
                           className={cn(
-                            "flex flex-col items-center gap-2 p-3 rounded-xl transition-all border active:scale-95",
-                            selectedPlatform === platform.id 
-                              ? "bg-primary text-on-primary border-primary shadow-lg" 
-                              : "bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest"
+                            'flex flex-col items-center gap-2 p-3 rounded-xl transition-all border active:scale-95',
+                            selectedPlatform === platform.id
+                              ? 'bg-primary text-on-primary border-primary shadow-lg'
+                              : 'bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest'
                           )}
                         >
                           <platform.icon size={16} />
-                          <span className="text-[8px] font-bold uppercase tracking-tighter">{platform.label}</span>
+                          <span className="text-[8px] font-bold uppercase tracking-tighter">
+                            {platform.label}
+                          </span>
                         </button>
                       ))}
                     </div>
@@ -253,7 +256,9 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
               {activeStep === 1 && (
                 <div className="space-y-6">
                   <div className="space-y-4">
-                    <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">Lighting Scenario</span>
+                    <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                      Lighting Scenario
+                    </span>
                     <div className="grid grid-cols-1 gap-2">
                       {[
                         { id: 'Formal', label: 'Formal / Business Portrait', icon: UserCircle },
@@ -265,10 +270,10 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                           key={scenario.id}
                           onClick={() => updateSetting('selectedTechnicalScenario', scenario.id)}
                           className={cn(
-                            "flex items-center gap-3 p-3 rounded-xl transition-all border text-left active:scale-95",
-                            selectedTechnicalScenario === scenario.id 
-                              ? "bg-primary/20 border-primary text-primary" 
-                              : "bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest"
+                            'flex items-center gap-3 p-3 rounded-xl transition-all border text-left active:scale-95',
+                            selectedTechnicalScenario === scenario.id
+                              ? 'bg-primary/20 border-primary text-primary'
+                              : 'bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest'
                           )}
                         >
                           <scenario.icon size={16} />
@@ -279,17 +284,19 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                   </div>
 
                   <div className="space-y-4">
-                    <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">Semantic Style</span>
+                    <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                      Semantic Style
+                    </span>
                     <div className="flex flex-wrap gap-2">
                       {['Portrait', 'Landscape', 'Street', 'Architectural', 'Macro', 'Event'].map((style) => (
-                        <button 
+                        <button
                           key={style}
                           onClick={() => updateSetting('selectedStyle', style)}
                           className={cn(
-                            "px-4 py-2 rounded-xl text-[10px] font-bold transition-all border active:scale-95",
-                            selectedStyle === style 
-                              ? "bg-primary text-on-primary border-primary" 
-                              : "bg-surface-container-high border-transparent text-on-surface-variant hover:border-primary/50"
+                            'px-4 py-2 rounded-xl text-[10px] font-bold transition-all border active:scale-95',
+                            selectedStyle === style
+                              ? 'bg-primary text-on-primary border-primary'
+                              : 'bg-surface-container-high border-transparent text-on-surface-variant hover:border-primary/50'
                           )}
                         >
                           {style}
@@ -300,40 +307,53 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
 
                   <div className="pt-4 border-t border-white/5 space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-label font-bold uppercase tracking-widest text-primary/80">Pro Camera Tools</span>
+                      <span className="text-[10px] font-label font-bold uppercase tracking-widest text-primary/80">
+                        Pro Camera Tools
+                      </span>
                       <div className="flex gap-1">
                         <div className="w-1 h-1 rounded-full bg-primary" />
                         <div className="w-1 h-1 rounded-full bg-primary/40" />
                         <div className="w-1 h-1 rounded-full bg-primary/20" />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-4">
                       <button
                         onClick={() => updateSetting('lensCorrection', !lensCorrection)}
                         className={cn(
-                          "w-full flex items-center justify-between p-3 rounded-xl transition-all border active:scale-[0.98]",
-                          lensCorrection ? "bg-primary/10 border-primary/30" : "bg-surface-container-high border-transparent"
+                          'w-full flex items-center justify-between p-3 rounded-xl transition-all border active:scale-[0.98]',
+                          lensCorrection
+                            ? 'bg-primary/10 border-primary/30'
+                            : 'bg-surface-container-high border-transparent'
                         )}
                       >
                         <div className="flex items-center gap-3 text-left">
-                          <Camera size={16} className={lensCorrection ? "text-primary" : "text-on-surface-variant"} />
+                          <Camera size={16} className={lensCorrection ? 'text-primary' : 'text-on-surface-variant'} />
                           <div>
                             <p className="text-xs font-bold text-on-surface">Lens Corrections</p>
-                            <p className="text-[10px] text-on-surface-variant leading-tight">Removes distortion & vignette</p>
+                            <p className="text-[10px] text-on-surface-variant leading-tight">
+                              Removes distortion &amp; vignette
+                            </p>
                           </div>
                         </div>
-                        <div className={cn("w-4 h-4 rounded border flex items-center justify-center", lensCorrection ? "bg-primary border-primary" : "border-outline")}>
+                        <div
+                          className={cn(
+                            'w-4 h-4 rounded border flex items-center justify-center',
+                            lensCorrection ? 'bg-primary border-primary' : 'border-outline'
+                          )}
+                        >
                           {lensCorrection && <CheckCircle2 size={10} className="text-on-primary" />}
                         </div>
                       </button>
 
                       <div className="flex gap-2">
-                         <button
+                        <button
                           onClick={() => updateSetting('whiteBalanceAdjusted', !whiteBalanceAdjusted)}
                           className={cn(
-                            "flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all border justify-center active:scale-95",
-                            whiteBalanceAdjusted ? "bg-primary/20 border-primary text-primary" : "bg-surface-container-high border-transparent text-on-surface-variant"
+                            'flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all border justify-center active:scale-95',
+                            whiteBalanceAdjusted
+                              ? 'bg-primary/20 border-primary text-primary'
+                              : 'bg-surface-container-high border-transparent text-on-surface-variant'
                           )}
                         >
                           <Pipette size={16} />
@@ -346,8 +366,10 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                         <button
                           onClick={() => updateSetting('autoFocusFace', !autoFocusFace)}
                           className={cn(
-                            "flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all border justify-center active:scale-95",
-                            autoFocusFace ? "bg-primary/20 border-primary text-primary" : "bg-surface-container-high border-transparent text-on-surface-variant"
+                            'flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all border justify-center active:scale-95',
+                            autoFocusFace
+                              ? 'bg-primary/20 border-primary text-primary'
+                              : 'bg-surface-container-high border-transparent text-on-surface-variant'
                           )}
                         >
                           <Maximize2 size={16} />
@@ -370,10 +392,10 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                         key={preset}
                         onClick={() => updateSetting('selectedPreset', preset)}
                         className={cn(
-                          "flex flex-col items-center justify-center p-4 rounded-2xl border transition-all aspect-square active:scale-95",
-                          selectedPreset === preset 
-                            ? "bg-primary border-primary text-on-primary shadow-lg" 
-                            : "bg-surface-container-high border-transparent text-on-surface-variant hover:border-primary/50"
+                          'flex flex-col items-center justify-center p-4 rounded-2xl border transition-all aspect-square active:scale-95',
+                          selectedPreset === preset
+                            ? 'bg-primary border-primary text-on-primary shadow-lg'
+                            : 'bg-surface-container-high border-transparent text-on-surface-variant hover:border-primary/50'
                         )}
                       >
                         <Layers size={20} />
@@ -383,22 +405,25 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                   </div>
                   <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
                     <p className="text-xs text-primary leading-relaxed italic font-medium">
-                      {selectedPreset}: {
-                        selectedPreset === 'Pro 1' ? 'High Contrast & Clarity' :
-                        selectedPreset === 'Pro 2' ? 'Warm Film Aesthetic' :
-                        selectedPreset === 'Pro 3' ? 'Clean Commercial Look' :
-                        selectedPreset === 'Pro 4' ? 'Moody Noir Tones' : 'Vibrant Editorial'
-                      }
+                      {selectedPreset}:{' '}
+                      {selectedPreset === 'Pro 1'
+                        ? 'High Contrast & Clarity'
+                        : selectedPreset === 'Pro 2'
+                          ? 'Warm Film Aesthetic'
+                          : selectedPreset === 'Pro 3'
+                            ? 'Clean Commercial Look'
+                            : selectedPreset === 'Pro 4'
+                              ? 'Moody Noir Tones'
+                              : 'Vibrant Editorial'}
                     </p>
                   </div>
-
                 </div>
               )}
 
               {activeStep === 3 && (
                 <div className="space-y-4">
                   <div className="relative">
-                    <textarea 
+                    <textarea
                       value={aiCommand}
                       onChange={(e) => setAiCommand(e.target.value)}
                       placeholder="Ex: 'Adjust skin tones to be warmer...'"
@@ -416,14 +441,14 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
             <div className="pt-8 flex flex-col gap-3">
               <div className="flex gap-3">
                 {activeStep > 0 && (
-                  <button 
+                  <button
                     onClick={handleBack}
                     className="flex-1 px-4 py-3 bg-surface-container-highest text-on-surface font-bold rounded-2xl hover:bg-surface-container-high transition-all text-sm"
                   >
                     Back
                   </button>
                 )}
-                <button 
+                <button
                   onClick={activeStep === 3 ? handleSendCommand : handleNext}
                   disabled={isCommandSending}
                   className="flex-[2] px-6 py-3 bg-primary text-on-primary font-bold rounded-2xl hover:opacity-90 transition-all shadow-lg shadow-primary/20 text-sm flex items-center justify-center gap-2"
@@ -438,7 +463,7 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                   )}
                 </button>
               </div>
-              <button 
+              <button
                 onClick={handleNext}
                 className="w-full py-2 text-on-surface-variant font-medium text-xs hover:text-on-surface transition-colors"
               >
@@ -454,16 +479,27 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
           <div className="relative overflow-hidden rounded-3xl p-6 md:p-8 bg-gradient-to-r from-secondary-container/20 to-primary-container/10 border border-white/5">
             <div className="relative z-10 flex flex-col sm:flex-row items-start gap-6">
               <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10 shrink-0">
-                <BrainCircuit className={cn("transition-colors", isCommandSending ? "animate-pulse delay-75" : "text-primary")} size={28} md:size={32} />
+                <BrainCircuit
+                  className={cn('transition-colors', isCommandSending ? 'animate-pulse delay-75' : 'text-primary')}
+                  size={28}
+                />
               </div>
               <div className="space-y-2 max-w-xl">
                 <h2 className="text-lg md:text-xl font-headline font-bold text-on-surface">
                   Luminous AI Recommendation
                 </h2>
                 <div className="text-on-surface-variant text-xs md:text-sm leading-relaxed space-y-1">
-                  <p>Platform: **{selectedPlatform.toUpperCase()}** • Ratio: **{selectedRatio}**</p>
-                  <p>Base: <span className="text-primary font-bold uppercase">[{selectedCleanBase}]</span> • Scenario: **{selectedTechnicalScenario}**</p>
-                  <p>AI Preset: <span className="text-secondary font-bold">[{selectedPreset}]</span> • Style: **{selectedStyle}**</p>
+                  <p>
+                    Platform: <strong>{selectedPlatform.toUpperCase()}</strong> • Ratio: <strong>{selectedRatio}</strong>
+                  </p>
+                  <p>
+                    Base: <span className="text-primary font-bold uppercase">[{selectedCleanBase}]</span> • Scenario:{' '}
+                    <strong>{selectedTechnicalScenario}</strong>
+                  </p>
+                  <p>
+                    AI Preset: <span className="text-secondary font-bold">[{selectedPreset}]</span> • Style:{' '}
+                    <strong>{selectedStyle}</strong>
+                  </p>
                 </div>
               </div>
             </div>
@@ -473,15 +509,26 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
           {/* Analysis Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {selectedPhotos.slice(0, 2).map((photo, i) => (
-              <div key={photo.id} className="bg-surface-container-low rounded-3xl overflow-hidden group border border-white/5 shadow-2xl relative">
+              <div
+                key={photo.id}
+                className="bg-surface-container-low rounded-3xl overflow-hidden group border border-white/5 shadow-2xl relative"
+              >
                 {/* Frame Overlays */}
                 {selectedFrame === 'film' && (
                   <div className="absolute inset-0 border-[20px] border-black z-10 pointer-events-none flex flex-col justify-between p-2 opacity-80">
-                    <div className="flex justify-between text-[8px] text-white/30 font-mono"><span>KODAK 400</span><span>36 EXP</span></div>
-                    <div className="flex justify-between text-[8px] text-white/30 font-mono"><span>10/24</span><span>APOY ENGINE</span></div>
+                    <div className="flex justify-between text-[8px] text-white/30 font-mono">
+                      <span>KODAK 400</span>
+                      <span>36 EXP</span>
+                    </div>
+                    <div className="flex justify-between text-[8px] text-white/30 font-mono">
+                      <span>10/24</span>
+                      <span>APOY ENGINE</span>
+                    </div>
                   </div>
                 )}
-                {selectedFrame === 'minimal' && <div className="absolute inset-4 border border-white/50 z-10 pointer-events-none" />}
+                {selectedFrame === 'minimal' && (
+                  <div className="absolute inset-4 border border-white/50 z-10 pointer-events-none" />
+                )}
                 {selectedFrame === 'cinema' && (
                   <>
                     <div className="absolute inset-x-0 top-0 h-10 bg-black z-10 pointer-events-none" />
@@ -490,28 +537,32 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                 )}
                 {selectedFrame === 'custom' && customFrameUrl && (
                   <div className="absolute inset-0 z-10 pointer-events-none">
+                    { }
                     <img src={customFrameUrl} className="w-full h-full object-cover" alt="Custom Frame Preview" />
                   </div>
                 )}
 
-                <div className={cn(
-                  "relative h-72 overflow-hidden transition-all duration-500 bg-black/90",
-                  selectedRatio === '45' && "aspect-[4/5] h-auto",
-                  selectedRatio === '11' && "aspect-square h-auto",
-                  selectedRatio === '169' && "aspect-video h-auto",
-                  selectedRatio === '43' && "aspect-[4/3] h-auto",
-                  selectedRatio === '916' && "aspect-[9/16] h-[400px]",
-                  selectedRatio === 'original' && "aspect-auto h-auto min-h-[18rem]",
-                  selectedFrame === 'film' && "p-4",
-                  selectedFrame === 'minimal' && "p-2",
-                  selectedFrame === 'custom' && "p-6",
-                  selectedFrame === 'cinema' && "py-8 px-0"
-                )}>
+                <div
+                  className={cn(
+                    'relative h-72 overflow-hidden transition-all duration-500 bg-black/90',
+                    selectedRatio === '45' && 'aspect-[4/5] h-auto',
+                    selectedRatio === '11' && 'aspect-square h-auto',
+                    selectedRatio === '169' && 'aspect-video h-auto',
+                    selectedRatio === '43' && 'aspect-[4/3] h-auto',
+                    selectedRatio === '916' && 'aspect-[9/16] h-[400px]',
+                    selectedRatio === 'original' && 'aspect-auto h-auto min-h-[18rem]',
+                    selectedFrame === 'film' && 'p-4',
+                    selectedFrame === 'minimal' && 'p-2',
+                    selectedFrame === 'custom' && 'p-6',
+                    selectedFrame === 'cinema' && 'py-8 px-0'
+                  )}
+                >
                   {/* Blurred Background for Contain Mode */}
                   {settings.objectFit === 'contain' && (
                     <div className="absolute inset-0 z-0 overflow-hidden">
-                      <img 
-                        src={photo.url} 
+                      { }
+                      <img
+                        src={photo.url}
                         alt=""
                         className="w-full h-full object-cover blur-2xl opacity-40 scale-110"
                         referrerPolicy="no-referrer"
@@ -519,52 +570,53 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                     </div>
                   )}
 
-                  <img 
-                    src={photo.url} 
-                    alt={photo.name} 
+                  { }
+                  <img
+                    src={photo.url}
+                    alt={photo.name}
                     className={cn(
-                      "w-full h-full transition-all duration-1000 relative z-10",
-                      settings.objectFit === 'cover' ? "object-cover" : "object-contain"
+                      'w-full h-full transition-all duration-1000 relative z-10',
+                      settings.objectFit === 'cover' ? 'object-cover' : 'object-contain'
                     )}
                     referrerPolicy="no-referrer"
                     style={{
                       filter: cn(
-                        "brightness(1)",
-                        selectedTechnicalScenario === 'Formal' && "brightness(1.05) contrast(1.05) saturate(1.1)",
-                        selectedTechnicalScenario === 'Indoor' && "brightness(1.15) sepia(0.05)",
-                        selectedTechnicalScenario === 'Outdoor' && "contrast(1.1) saturate(1.2)",
-                        selectedTechnicalScenario === 'Night' && "brightness(1.05) contrast(1.15) saturate(0.85)",
-                        selectedStyle === 'Portrait' && "brightness(1.05) saturate(1.1) contrast(1.02)",
-                        selectedStyle === 'Landscape' && "saturate(1.3) contrast(1.1) brightness(1.05)",
-                        selectedStyle === 'Street' && "grayscale(0.1) contrast(1.2) brightness(0.95)",
-                        selectedStyle === 'Architectural' && "contrast(1.25) brightness(1.1) saturate(0.8)",
-                        selectedStyle === 'Macro' && "saturate(1.4) brightness(1.1)",
-                        selectedStyle === 'Event' && "brightness(1.1) contrast(1.1) saturate(1.15)",
-                        selectedPreset === 'Pro 1' && "contrast(1.25) brightness(1.1)",
-                        selectedPreset === 'Pro 2' && "sepia(0.2) brightness(0.95)",
-                        selectedPreset === 'Pro 3' && "contrast(1.1) saturate(1.05) brightness(1.05)",
-                        selectedPreset === 'Pro 4' && "grayscale(0.5) contrast(1.3)",
-                        selectedPreset === 'Pro 5' && "saturate(1.5) contrast(1.1)",
-                        selectedCleanBase === 'neutral' && "brightness(1.02) contrast(0.98) saturate(1.1)",
-                        selectedCleanBase === 'portrait' && "brightness(1.04) contrast(0.95) saturate(1.05)",
-                        selectedCleanBase === 'landscape' && "brightness(1) contrast(1.05) saturate(1.2)",
-                        selectedCleanBase === 'studio' && "brightness(1.08) contrast(1.02) saturate(1)",
-                        lensCorrection && "contrast(1.02) brightness(1.02)",
-                        whiteBalanceAdjusted && "saturate(1.05) contrast(1.05)"
+                        'brightness(1)',
+                        selectedTechnicalScenario === 'Formal' && 'brightness(1.05) contrast(1.05) saturate(1.1)',
+                        selectedTechnicalScenario === 'Indoor' && 'brightness(1.15) sepia(0.05)',
+                        selectedTechnicalScenario === 'Outdoor' && 'contrast(1.1) saturate(1.2)',
+                        selectedTechnicalScenario === 'Night' && 'brightness(1.05) contrast(1.15) saturate(0.85)',
+                        selectedStyle === 'Portrait' && 'brightness(1.05) saturate(1.1) contrast(1.02)',
+                        selectedStyle === 'Landscape' && 'saturate(1.3) contrast(1.1) brightness(1.05)',
+                        selectedStyle === 'Street' && 'grayscale(0.1) contrast(1.2) brightness(0.95)',
+                        selectedStyle === 'Architectural' && 'contrast(1.25) brightness(1.1) saturate(0.8)',
+                        selectedStyle === 'Macro' && 'saturate(1.4) brightness(1.1)',
+                        selectedStyle === 'Event' && 'brightness(1.1) contrast(1.1) saturate(1.15)',
+                        selectedPreset === 'Pro 1' && 'contrast(1.25) brightness(1.1)',
+                        selectedPreset === 'Pro 2' && 'sepia(0.2) brightness(0.95)',
+                        selectedPreset === 'Pro 3' && 'contrast(1.1) saturate(1.05) brightness(1.05)',
+                        selectedPreset === 'Pro 4' && 'grayscale(0.5) contrast(1.3)',
+                        selectedPreset === 'Pro 5' && 'saturate(1.5) contrast(1.1)',
+                        selectedCleanBase === 'neutral' && 'brightness(1.02) contrast(0.98) saturate(1.1)',
+                        selectedCleanBase === 'portrait' && 'brightness(1.04) contrast(0.95) saturate(1.05)',
+                        selectedCleanBase === 'landscape' && 'brightness(1) contrast(1.05) saturate(1.2)',
+                        selectedCleanBase === 'studio' && 'brightness(1.08) contrast(1.02) saturate(1)',
+                        lensCorrection && 'contrast(1.02) brightness(1.02)',
+                        whiteBalanceAdjusted && 'saturate(1.05) contrast(1.05)'
                       ),
                       opacity: selectedPlatform === 'tk' ? 0.9 : 1,
-                      mixBlendMode: selectedPlatform === 'li' ? 'luminosity' as any : 'normal' as any,
+                      mixBlendMode: selectedPlatform === 'li' ? ('luminosity' as React.CSSProperties['mixBlendMode']) : ('normal' as React.CSSProperties['mixBlendMode']),
                       transform: cn(
                         lensCorrection ? 'scale(1.02)' : 'scale(1)',
-                        autoCutToRatio && !settings.preserveHumans && "scale(1.15) translateY(-5%)",
-                        autoCutToRatio && settings.preserveHumans && "scale(1.0) translateY(0)",
-                        autoArrange && "scale(1.05) rotate(0.5deg)"
-                      )
+                        autoCutToRatio && !settings.preserveHumans && 'scale(1.15) translateY(-5%)',
+                        autoCutToRatio && settings.preserveHumans && 'scale(1.0) translateY(0)',
+                        autoArrange && 'scale(1.05) rotate(0.5deg)'
+                      ),
                     }}
                   />
                   {/* AI Composition Guide Overlay */}
                   {autoCutToRatio && (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 0.4 }}
                       className="absolute inset-0 pointer-events-none z-30"
@@ -581,20 +633,20 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                       {[
                         { t: '30%', l: '45%', s: 20 },
                         { t: '35%', l: '65%', s: 16 },
-                        { t: '28%', l: '25%', s: 18 }
+                        { t: '28%', l: '25%', s: 18 },
                       ].map((face, idx) => (
-                        <motion.div 
+                        <motion.div
                           key={idx}
                           initial={{ opacity: 0, scale: 1.5 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: idx * 0.1 }}
                           className="absolute border border-primary/60 rounded-sm"
-                          style={{ 
-                            top: face.t, 
-                            left: face.l, 
-                            width: `${face.s * 4}px`, 
+                          style={{
+                            top: face.t,
+                            left: face.l,
+                            width: `${face.s * 4}px`,
                             height: `${face.s * 4}px`,
-                            transform: 'translate(-50%, -50%)'
+                            transform: 'translate(-50%, -50%)',
                           }}
                         >
                           <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-primary" />
@@ -609,24 +661,35 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                   {/* Platform Specific Overlays */}
                   {selectedPlatform === 'ig' && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
                   {selectedPlatform === 'fb' && <div className="absolute inset-0 bg-blue-500/5 pointer-events-none" />}
-                  
-                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-60" />
-                
-                <div className="absolute top-4 left-4 z-20">
-                  <div className={cn(
-                    "px-3 py-1 rounded-full backdrop-blur-md text-[10px] font-bold flex items-center gap-2 border border-white/10",
-                    selectedPhotos.indexOf(photo) === 0 ? "bg-primary/20 text-primary" : "bg-secondary/20 text-secondary"
-                  )}>
-                    <div className={cn("w-1.5 h-1.5 rounded-full", selectedPhotos.indexOf(photo) === 0 ? "bg-primary" : "bg-secondary")} />
-                    {selectedPlatform.toUpperCase()} OPTIMIZED
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-60" />
+
+                  <div className="absolute top-4 left-4 z-20">
+                    <div
+                      className={cn(
+                        'px-3 py-1 rounded-full backdrop-blur-md text-[10px] font-bold flex items-center gap-2 border border-white/10',
+                        selectedPhotos.indexOf(photo) === 0 ? 'bg-primary/20 text-primary' : 'bg-secondary/20 text-secondary'
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          'w-1.5 h-1.5 rounded-full',
+                          selectedPhotos.indexOf(photo) === 0 ? 'bg-primary' : 'bg-secondary'
+                        )}
+                      />
+                      {selectedPlatform.toUpperCase()} OPTIMIZED
+                    </div>
                   </div>
-                </div>
 
                   <div className="absolute bottom-4 left-4 z-20">
-                    <div className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest mb-1">AI Recommendation</div>
+                    <div className="text-[10px] font-label text-on-surface-variant uppercase tracking-widest mb-1">
+                      AI Recommendation
+                    </div>
                     <div className="text-3xl font-headline font-black text-white">
-                      {i === 0 ? "98.2" : "84.5"}
-                      <span className={cn("text-sm font-normal ml-1", i === 0 ? "text-primary" : "text-secondary")}>/100</span>
+                      {i === 0 ? '98.2' : '84.5'}
+                      <span className={cn('text-sm font-normal ml-1', i === 0 ? 'text-primary' : 'text-secondary')}>
+                        /100
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -650,20 +713,22 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
           {/* Ratio Selector (Always visible as a quick tool) */}
           <div className="bg-surface-container-low rounded-3xl p-6 border border-white/5">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant">Quick Ratio Check</h4>
+              <h4 className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                Quick Ratio Check
+              </h4>
               <div className="flex bg-surface-container-highest/50 rounded-lg p-1">
                 {[
                   { id: 'cover', label: 'Fill', desc: 'Crop to fill' },
-                  { id: 'contain', label: 'Fit', desc: 'Show all' }
+                  { id: 'contain', label: 'Fit', desc: 'Show all' },
                 ].map((mode) => (
                   <button
                     key={mode.id}
                     onClick={() => updateSetting('objectFit', mode.id)}
                     className={cn(
-                      "px-3 py-1 rounded-md text-[10px] font-bold transition-all",
-                      settings.objectFit === mode.id 
-                        ? "bg-primary text-on-primary shadow-sm" 
-                        : "text-on-surface-variant hover:text-on-surface"
+                      'px-3 py-1 rounded-md text-[10px] font-bold transition-all',
+                      settings.objectFit === mode.id
+                        ? 'bg-primary text-on-primary shadow-sm'
+                        : 'text-on-surface-variant hover:text-on-surface'
                     )}
                   >
                     {mode.label}
@@ -680,18 +745,29 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                 { id: '169', label: '16:9 Cinema', icon: 'w-10 h-6' },
                 { id: '916', label: '9:16 Stories', icon: 'w-6 h-10' },
               ].map((ratio) => (
-                <div 
+                <div
                   key={ratio.id}
                   onClick={() => updateSetting('selectedRatio', ratio.id)}
                   className={cn(
-                    "bg-surface-container rounded-2xl p-4 border flex flex-col items-center justify-center gap-3 cursor-pointer transition-all",
-                    selectedRatio === ratio.id 
-                      ? "border-primary/40 bg-primary/5 shadow-inner" 
-                      : "border-outline-variant/10 hover:border-primary/50"
+                    'bg-surface-container rounded-2xl p-4 border flex flex-col items-center justify-center gap-3 cursor-pointer transition-all',
+                    selectedRatio === ratio.id
+                      ? 'border-primary/40 bg-primary/5 shadow-inner'
+                      : 'border-outline-variant/10 hover:border-primary/50'
                   )}
                 >
-                  <div className={cn("border-2 rounded-sm", ratio.icon, selectedRatio === ratio.id ? "border-primary" : "border-on-surface-variant")} />
-                  <span className={cn("text-[10px] font-bold", selectedRatio === ratio.id ? "text-primary" : "text-on-surface-variant")}>
+                  <div
+                    className={cn(
+                      'border-2 rounded-sm',
+                      ratio.icon,
+                      selectedRatio === ratio.id ? 'border-primary' : 'border-on-surface-variant'
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      'text-[10px] font-bold',
+                      selectedRatio === ratio.id ? 'text-primary' : 'text-on-surface-variant'
+                    )}
+                  >
                     {ratio.label}
                   </span>
                 </div>
@@ -706,7 +782,9 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                 <BrainCircuit size={18} className="text-primary" />
               </div>
               <div>
-                <h4 className="text-xs font-headline font-bold text-on-surface uppercase tracking-widest">Magazine AI Composition</h4>
+                <h4 className="text-xs font-headline font-bold text-on-surface uppercase tracking-widest">
+                  Magazine AI Composition
+                </h4>
                 <p className="text-[10px] text-on-surface-variant font-medium">Auto-frame your masterpieces</p>
               </div>
             </div>
@@ -715,10 +793,10 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
               <button
                 onClick={() => updateSetting('autoCutToRatio', !autoCutToRatio)}
                 className={cn(
-                  "flex items-center justify-between p-4 rounded-2xl border transition-all",
-                  autoCutToRatio 
-                    ? "bg-primary text-on-primary border-primary shadow-lg" 
-                    : "bg-surface-container border-transparent text-on-surface-variant hover:border-primary/30"
+                  'flex items-center justify-between p-4 rounded-2xl border transition-all',
+                  autoCutToRatio
+                    ? 'bg-primary text-on-primary border-primary shadow-lg'
+                    : 'bg-surface-container border-transparent text-on-surface-variant hover:border-primary/30'
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -728,7 +806,12 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                     <p className="text-[8px] opacity-70">Dramatic focal crop</p>
                   </div>
                 </div>
-                <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", autoCutToRatio ? "border-on-primary" : "border-on-surface-variant/30")}>
+                <div
+                  className={cn(
+                    'w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                    autoCutToRatio ? 'border-on-primary' : 'border-on-surface-variant/30'
+                  )}
+                >
                   {autoCutToRatio && <div className="w-2 h-2 bg-on-primary rounded-full" />}
                 </div>
               </button>
@@ -736,20 +819,25 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
               <button
                 onClick={() => updateSetting('preserveHumans', !settings.preserveHumans)}
                 className={cn(
-                  "flex items-center justify-between p-4 rounded-2xl border transition-all",
-                  settings.preserveHumans 
-                    ? "bg-primary text-on-primary border-primary shadow-lg" 
-                    : "bg-surface-container border-transparent text-on-surface-variant hover:border-primary/30"
+                  'flex items-center justify-between p-4 rounded-2xl border transition-all',
+                  settings.preserveHumans
+                    ? 'bg-primary text-on-primary border-primary shadow-lg'
+                    : 'bg-surface-container border-transparent text-on-surface-variant hover:border-primary/30'
                 )}
               >
                 <div className="flex items-center gap-3">
                   <UserCircle size={16} />
                   <div className="text-left">
                     <p className="text-[10px] font-black uppercase">Keep Subjects</p>
-                    <p className="text-[8px] opacity-70">Don't crop humans</p>
+                    <p className="text-[8px] opacity-70">Don&apos;t crop humans</p>
                   </div>
                 </div>
-                <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", settings.preserveHumans ? "border-on-primary" : "border-on-surface-variant/30")}>
+                <div
+                  className={cn(
+                    'w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                    settings.preserveHumans ? 'border-on-primary' : 'border-on-surface-variant/30'
+                  )}
+                >
                   {settings.preserveHumans && <div className="w-2 h-2 bg-on-primary rounded-full" />}
                 </div>
               </button>
@@ -757,10 +845,10 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
               <button
                 onClick={() => updateSetting('autoArrange', !autoArrange)}
                 className={cn(
-                  "flex items-center justify-between p-4 rounded-2xl border transition-all",
-                  autoArrange 
-                    ? "bg-secondary text-white border-secondary shadow-lg shadow-secondary/20" 
-                    : "bg-surface-container border-transparent text-on-surface-variant hover:border-secondary/30"
+                  'flex items-center justify-between p-4 rounded-2xl border transition-all',
+                  autoArrange
+                    ? 'bg-secondary text-white border-secondary shadow-lg shadow-secondary/20'
+                    : 'bg-surface-container border-transparent text-on-surface-variant hover:border-secondary/30'
                 )}
               >
                 <div className="flex items-center gap-3">
@@ -770,7 +858,12 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                     <p className="text-[8px] opacity-70">Straighten tilted shots</p>
                   </div>
                 </div>
-                <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center", autoArrange ? "border-white" : "border-on-surface-variant/30")}>
+                <div
+                  className={cn(
+                    'w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                    autoArrange ? 'border-white' : 'border-on-surface-variant/30'
+                  )}
+                >
                   {autoArrange && <div className="w-2 h-2 bg-white rounded-full" />}
                 </div>
               </button>
@@ -782,9 +875,9 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
       {/* Floating Action Cluster */}
       <div className="fixed bottom-28 md:bottom-12 right-4 md:right-8 flex items-center gap-3 md:gap-4 z-50">
         <button className="w-12 h-12 md:w-14 md:h-14 bg-surface-container-highest backdrop-blur-xl border border-white/10 text-primary rounded-full shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
-          <Share2 size={20} md:size={24} />
+          <Share2 size={20} />
         </button>
-        <button 
+        <button
           onClick={() => onViewChange('export')}
           className="px-6 md:px-8 h-12 md:h-14 bg-gradient-to-br from-primary to-primary-container text-on-primary-container rounded-full shadow-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:scale-110 active:scale-95 transition-all flex items-center gap-2"
         >

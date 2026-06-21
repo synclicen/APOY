@@ -1,4 +1,6 @@
-import React, { useState, useCallback } from 'react';
+'use client';
+
+import { useState, useCallback } from 'react';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
 import { UploadZone } from './components/UploadZone';
@@ -8,7 +10,6 @@ import { ExportView } from './components/ExportView';
 import { Photo, ToolType, ViewType, AnalysisSettings } from './types';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI } from "@google/genai";
 import { cn } from './lib/utils';
 
 // Sample initial photos to match the screenshot
@@ -25,7 +26,7 @@ const INITIAL_PHOTOS: Photo[] = [
     score: 98.2,
     exposure: 12,
     focus: 88,
-    style: 'Landscape'
+    style: 'Landscape',
   },
   {
     id: '2',
@@ -38,7 +39,7 @@ const INITIAL_PHOTOS: Photo[] = [
     score: 85.5,
     exposure: 15,
     focus: 72,
-    style: 'Landscape'
+    style: 'Landscape',
   },
   {
     id: '3',
@@ -52,7 +53,7 @@ const INITIAL_PHOTOS: Photo[] = [
     score: 94.1,
     exposure: 8,
     focus: 92,
-    style: 'Landscape'
+    style: 'Landscape',
   },
   {
     id: '4',
@@ -65,20 +66,17 @@ const INITIAL_PHOTOS: Photo[] = [
     score: 74.5,
     exposure: 22,
     focus: 65,
-    style: 'Landscape'
-  }
+    style: 'Landscape',
+  },
 ];
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export default function App() {
   const [photos, setPhotos] = useState<Photo[]>(INITIAL_PHOTOS);
   const [activeTool, setActiveTool] = useState<ToolType | null>('enhance');
   const [currentView, setCurrentView] = useState<ViewType>('import');
   const [isAiSmartSelection, setIsAiSmartSelection] = useState(true);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  
+
   const [analysisSettings, setAnalysisSettings] = useState<AnalysisSettings>({
     selectedPlatform: 'ig',
     selectedTechnicalScenario: 'Formal',
@@ -107,71 +105,71 @@ export default function App() {
     frameHistory: [],
   });
 
-  const handleUpload = useCallback((files: FileList) => {
-    const newPhotos: Photo[] = Array.from(files).map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      url: URL.createObjectURL(file),
-      name: file.name,
-      size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
-      type: file.type,
-      status: 'uploaded',
-      selected: false,
-      score: Math.floor(Math.random() * 30) + 70,
-      exposure: Math.floor(Math.random() * 20),
-      focus: Math.floor(Math.random() * 40) + 60,
-    }));
+  const analyzePhotos = useCallback((newPhotos: Photo[]) => {
+    setPhotos((prev) =>
+      prev.map((p) => (newPhotos.find((np) => np.id === p.id) ? { ...p, status: 'analyzing' } : p))
+    );
 
-    setPhotos(prev => [...newPhotos, ...prev]);
+    setTimeout(() => {
+      setPhotos((prev) =>
+        prev.map((p) => {
+          const isNew = newPhotos.find((np) => np.id === p.id);
+          if (isNew) {
+            const isBestPick = Math.random() > 0.6;
+            return {
+              ...p,
+              status: 'ready',
+              isAiBestPick: isBestPick,
+              selected: isBestPick,
+            };
+          }
+          return p;
+        })
+      );
+    }, 2000);
+  }, []);
 
-    if (isAiSmartSelection) {
-      analyzePhotos(newPhotos);
-    }
-  }, [isAiSmartSelection]);
+  const handleUpload = useCallback(
+    (files: FileList) => {
+      const newPhotos: Photo[] = Array.from(files).map((file) => ({
+        id: Math.random().toString(36).substring(2, 11),
+        url: URL.createObjectURL(file),
+        name: file.name,
+        size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
+        type: file.type,
+        status: 'uploaded',
+        selected: false,
+        score: Math.floor(Math.random() * 30) + 70,
+        exposure: Math.floor(Math.random() * 20),
+        focus: Math.floor(Math.random() * 40) + 60,
+      }));
 
-  const analyzePhotos = async (newPhotos: Photo[]) => {
-    setIsAnalyzing(true);
-    setPhotos(prev => prev.map(p => 
-      newPhotos.find(np => np.id === p.id) ? { ...p, status: 'analyzing' } : p
-    ));
+      setPhotos((prev) => [...newPhotos, ...prev]);
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    setPhotos(prev => prev.map(p => {
-      const isNew = newPhotos.find(np => np.id === p.id);
-      if (isNew) {
-        const isBestPick = Math.random() > 0.6;
-        return { 
-          ...p, 
-          status: 'ready', 
-          isAiBestPick: isBestPick,
-          selected: isBestPick 
-        };
+      if (isAiSmartSelection) {
+        analyzePhotos(newPhotos);
       }
-      return p;
-    }));
-    
-    setIsAnalyzing(false);
-  };
+    },
+    [isAiSmartSelection, analyzePhotos]
+  );
 
   const toggleSelect = (id: string) => {
-    setPhotos(prev => prev.map(p => 
-      p.id === id ? { ...p, selected: !p.selected } : p
-    ));
+    setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, selected: !p.selected } : p)));
   };
 
   const handleSelectAll = () => {
-    const allSelected = photos.every(p => p.selected);
-    setPhotos(prev => prev.map(p => ({ ...p, selected: !allSelected })));
+    const allSelected = photos.every((p) => p.selected);
+    setPhotos((prev) => prev.map((p) => ({ ...p, selected: !allSelected })));
   };
 
-  const selectedCount = photos.filter(p => p.selected).length;
+  const selectedCount = photos.filter((p) => p.selected).length;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
       <TopBar currentView={currentView} onViewChange={setCurrentView} />
       <Sidebar activeTool={activeTool} onToolSelect={setActiveTool} />
 
-      <main className="flex-1 md:ml-24 mt-16 p-4 md:p-8 max-w-[1600px] mx-auto w-full pb-24 md:pb-8">
+      <main className="flex-1 min-h-0 md:ml-24 mt-16 px-4 md:px-6 pt-4 pb-24 md:pb-3 w-full max-w-[1700px] mx-auto flex flex-col overflow-hidden">
         <AnimatePresence mode="wait">
           {currentView === 'import' && (
             <motion.div
@@ -180,74 +178,79 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
+              className="flex-1 min-h-0 flex flex-col overflow-hidden"
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4 shrink-0">
                 <div className="max-w-2xl">
-                  <h1 className="font-headline font-extrabold text-3xl md:text-5xl tracking-tight text-on-surface mb-2">
+                  <h1 className="font-headline font-extrabold text-2xl md:text-4xl tracking-tight text-on-surface mb-1">
                     Import <span className="text-gradient">Masterpieces.</span>
                   </h1>
-                  <p className="text-on-surface-variant text-base md:text-lg mb-4">
+                  <p className="text-on-surface-variant text-sm md:text-base mb-3">
                     Drop your RAW files here. Our AI will curate your best shots automatically.
                   </p>
-                  <button 
+                  <button
                     onClick={handleSelectAll}
                     className="px-4 py-2 bg-surface-container-high rounded-xl text-xs font-bold uppercase tracking-widest text-primary hover:bg-surface-container-highest active:scale-95 transition-all border border-primary/10"
                   >
-                    {photos.every(p => p.selected) ? 'Deselect All' : 'Select All'}
+                    {photos.every((p) => p.selected) ? 'Deselect All' : 'Select All'}
                   </button>
                 </div>
 
-                <div className="flex items-center gap-4 bg-surface-container-low p-2 rounded-full border border-outline-variant/10 w-full md:w-auto justify-between md:justify-start">
+                <div className="flex items-center gap-4 bg-surface-container-low p-2 rounded-full border border-outline-variant/10 w-full md:w-auto justify-between md:justify-start shrink-0">
                   <div className="flex items-center gap-3 px-4">
-                    <Sparkles className={cn("transition-colors", isAiSmartSelection ? "text-primary" : "text-on-surface-variant")} size={18} fill={isAiSmartSelection ? "currentColor" : "none"} />
+                    <Sparkles
+                      className={cn('transition-colors', isAiSmartSelection ? 'text-primary' : 'text-on-surface-variant')}
+                      size={18}
+                      fill={isAiSmartSelection ? 'currentColor' : 'none'}
+                    />
                     <span className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
                       AI Smart Selection
                     </span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setIsAiSmartSelection(!isAiSmartSelection)}
                     className={cn(
-                      "w-12 h-6 rounded-full relative flex items-center transition-all duration-300 px-1",
-                      isAiSmartSelection ? "bg-primary-container" : "bg-surface-container-highest"
+                      'w-12 h-6 rounded-full relative flex items-center transition-all duration-300 px-1',
+                      isAiSmartSelection ? 'bg-primary-container' : 'bg-surface-container-highest'
                     )}
                   >
-                    <motion.div 
+                    <motion.div
                       animate={{ x: isAiSmartSelection ? 24 : 0 }}
                       className={cn(
-                        "w-4 h-4 rounded-full shadow-sm",
-                        isAiSmartSelection ? "bg-on-primary-container" : "bg-on-surface-variant"
+                        'w-4 h-4 rounded-full shadow-sm',
+                        isAiSmartSelection ? 'bg-on-primary-container' : 'bg-on-surface-variant'
                       )}
                     />
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-12 gap-6 items-stretch mb-12">
-                <div className="col-span-12 lg:col-span-4">
+              <div className="grid grid-cols-12 gap-4 md:gap-6 items-stretch flex-1 min-h-0">
+                <div className="col-span-12 lg:col-span-4 min-h-0">
                   <UploadZone onUpload={handleUpload} />
                 </div>
-                <div className="col-span-12 lg:col-span-8">
-                  <PhotoGrid 
-                    photos={photos} 
-                    onToggleSelect={toggleSelect} 
+                <div className="col-span-12 lg:col-span-8 min-h-0">
+                  <PhotoGrid
+                    photos={photos}
+                    onToggleSelect={toggleSelect}
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end items-center gap-8">
+              <div className="flex justify-end items-center gap-4 md:gap-8 flex-wrap mt-4 shrink-0">
                 {selectedCount > 0 && (
                   <span className="text-on-surface-variant font-medium text-sm">
                     {selectedCount} RAW files selected for analysis
                   </span>
                 )}
-                <button 
+                <button
                   disabled={selectedCount === 0}
                   onClick={() => setCurrentView('analysis')}
                   className={cn(
-                    "btn-primary text-lg px-10 py-4 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95",
-                    selectedCount > 0 && "hover:shadow-[0px_0px_40px_rgba(201,190,255,0.3)]"
+                    'btn-primary text-base px-8 py-3 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95',
+                    selectedCount > 0 && 'hover:shadow-[0px_0px_40px_rgba(201,190,255,0.3)]'
                   )}
                 >
                   Move to Analysis
@@ -264,10 +267,11 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
+              className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1"
             >
-              <AnalysisView 
-                photos={photos} 
-                onViewChange={setCurrentView} 
+              <AnalysisView
+                photos={photos}
+                onViewChange={setCurrentView}
                 settings={analysisSettings}
                 onSettingsChange={setAnalysisSettings}
               />
@@ -281,9 +285,10 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
+              className="flex-1 min-h-0 overflow-hidden"
             >
-              <ExportView 
-                photos={photos} 
+              <ExportView
+                photos={photos}
                 settings={analysisSettings}
                 onSettingsChange={setAnalysisSettings}
               />
@@ -292,13 +297,11 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <footer className="w-full py-8 flex flex-col items-center gap-2 border-t border-outline-variant/5 mt-auto">
-        <p className="text-[10px] text-on-surface-variant/40 tracking-[0.2em] font-medium uppercase">
-          APOY - Add Photos, Originate Yours
-        </p>
-        <p className="text-[10px] text-on-surface-variant/20">
-          Made by Fajrianor - PUSHAKIN UIN Antasari Banjarmasin 2026
-        </p>
+      {/* Compact status bar (replaces large footer) — keeps the app on one screen */}
+      <footer className="hidden md:flex h-8 shrink-0 items-center justify-center gap-3 border-t border-outline-variant/5 bg-surface/60 px-6 text-[9px] text-on-surface-variant/40 tracking-[0.2em] font-medium uppercase">
+        <span>APOY — Add Photos, Originate Yours</span>
+        <span className="opacity-30">•</span>
+        <span>Made by Fajrianor — PUSHAKIN UIN Antasari Banjarmasin 2026</span>
       </footer>
     </div>
   );
