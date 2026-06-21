@@ -34,8 +34,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
   const [isExporting, setIsExporting] = useState(false);
   const [isExported, setIsExported] = useState(false);
   const [exportName, setExportName] = useState('My-APOY-Masterpiece');
-  const [folderPath, setFolderPath] = useState('Documents/APOY_Exports');
-  const [directoryHandle, setDirectoryHandle] = useState<any>(null);
+  const [folderPath, setFolderPath] = useState('APOY_Exports');
   const [progress, setProgress] = useState(0);
   const [currentProcessingIndex, setCurrentProcessingIndex] = useState(0);
 
@@ -302,24 +301,17 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
             const fileName = `${exportName}${suffix}.${extension}`;
 
             try {
-              if (directoryHandle && destination === 'local') {
-                // Write directly to chosen directory
-                const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
-                const writable = await fileHandle.createWritable();
-                await writable.write(blob);
-                await writable.close();
-              } else {
-                // Traditional download fallback (Single File)
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                const cleanPath = folderPath.replace(/[^a-zA-Z0-9_\-\/]/g, '_').replace(/\//g, '_');
-                link.download = destination === 'local' ? `${cleanPath}_${fileName}` : fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                setTimeout(() => URL.revokeObjectURL(url), 100);
-              }
+              // Traditional download fallback (Single File)
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              const cleanPath = folderPath.replace(/[^a-zA-Z0-9_\-\/]/g, '_').replace(/\//g, '_');
+              link.download = destination === 'local' ? `${cleanPath}_${fileName}` : fileName;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              setTimeout(() => URL.revokeObjectURL(url), 100);
+              
               resolve();
             } catch (err) {
               reject(err);
@@ -341,7 +333,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
     setProgress(0);
     setCurrentProcessingIndex(0);
 
-    const useZipFallback = destination === 'local' && !directoryHandle && selectedPhotos.length > 1;
+    const useZipFallback = destination === 'local' && selectedPhotos.length > 1;
     const zip = useZipFallback ? new JSZip() : null;
 
     for (let i = 0; i < selectedPhotos.length; i++) {
@@ -386,38 +378,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
     }, 5000);
   };
 
-  const handlePickFolder = async () => {
-    try {
-      if ('showDirectoryPicker' in window) {
-        // Some browsers like Firefox don't support this, or it's blocked in iframes
-        let handle;
-        try {
-          handle = await (window as any).showDirectoryPicker({
-            mode: 'readwrite',
-            id: 'apoy-export',
-            startIn: 'pictures'
-          });
-        } catch (err: any) {
-          console.warn("Direct Picker blocked or cancelled. Reason:", err.name, err.message);
-          
-          if (err.name === 'SecurityError' || err.name === 'NotAllowedError') {
-            alert("⚠️ BROWSER SECURITY BLOCK ⚠️\n\nYour browser denies direct folder access inside this preview window.\n\nHOW TO FIX:\n1. Open APOY in a 'New Tab' (icon in top right).\n2. Click 'Select Folder' again.\n\nOtherwise, your photos will be safely grouped into a ZIP file in your regular Downloads folder.");
-          }
-          return;
-        }
-
-        if (handle) {
-          setDirectoryHandle(handle);
-          setFolderPath(handle.name);
-          setDestination('local');
-        }
-      } else {
-        alert("Your browser does not support the Direct Folder API. All exports will be automatically grouped into a single ZIP archive for you.");
-      }
-    } catch (e) {
-      console.error('Picker interaction failed:', e);
-    }
-  };
+  // folder picker removed for web compatibility
 
   const activeFilterItems = [
     "brightness(1)",
@@ -1063,90 +1024,33 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
 
               {destination === 'local' && (
                 <div className="space-y-4 pt-2">
-                   <div className="flex justify-between items-center bg-surface-container-high p-3 rounded-xl border border-white/5">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <div className={cn(
-                        "p-2 rounded-lg shrink-0",
-                        directoryHandle ? "bg-primary/20 text-primary" : "bg-on-surface/5 text-on-surface-variant"
-                      )}>
-                        <FolderOpen size={18} />
-                      </div>
-                      <div className="overflow-hidden">
-                        <div className="flex items-center gap-2">
-                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Base Directory</p>
-                          {directoryHandle ? (
-                            <span className="text-[8px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">PERMITTED</span>
-                          ) : (
-                            <span className="text-[8px] bg-on-surface/5 text-on-surface-variant/60 px-1.5 py-0.5 rounded-full font-bold">ZIP MODE</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-on-surface truncate font-mono">{folderPath}</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={handlePickFolder}
-                      title="Select Folder"
-                      className={cn(
-                        "p-2 rounded-lg transition-colors shrink-0",
-                        directoryHandle ? "bg-primary text-on-primary" : "hover:bg-primary/10 text-primary"
-                      )}
-                    >
-                      <FileUp size={18} />
-                    </button>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 bg-primary/5 border border-primary/10 rounded-xl flex gap-3"
+                  >
+                    <AlertCircle size={14} className="text-primary shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-on-surface-variant leading-relaxed">
+                      <span className="text-primary font-bold uppercase tracking-tight">Standard Web Export:</span> Processed photos will be downloaded through your browser's default download manager. 
+                      {selectedPhotos.length > 1 && " Since you have multiple photos selected, they will be automatically bundled into a high-speed ZIP archive."}
+                    </p>
+                  </motion.div>
+
+                  <div className="space-y-2 pt-2">
+                    <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant px-1">Archive Output Name</label>
+                    <input 
+                      type="text"
+                      value={folderPath}
+                      onChange={(e) => {
+                        setFolderPath(e.target.value);
+                      }}
+                      placeholder="e.g. APOY_Exports"
+                      className="w-full bg-surface-container-high border border-white/5 rounded-xl px-4 py-2.5 text-xs text-on-surface focus:outline-none focus:border-primary/50 transition-all font-mono"
+                    />
+                    <p className="text-[9px] text-on-surface-variant/60 px-1 italic">
+                      Output will be saved to your device as <span className="text-primary font-mono">{folderPath}{selectedPhotos.length > 1 ? '.zip' : ''}</span>
+                    </p>
                   </div>
-
-                  {!directoryHandle && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-3 bg-primary/5 border border-primary/10 rounded-xl flex gap-3"
-                    >
-                      <AlertCircle size={14} className="text-primary shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-on-surface-variant leading-relaxed">
-                        <span className="text-primary font-bold uppercase tracking-tight">Grouping active:</span> Since no folder was granted permission, APOY will automatically bundle your photos into a single <span className="font-mono">{folderPath}.zip</span> file to keep your exports organized.
-                      </p>
-                    </motion.div>
-                  )}
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant px-1">How files are saved</label>
-                      <div className="p-3 bg-surface-container-high rounded-xl border border-white/5 space-y-2">
-                        <p className="text-[10px] text-on-surface-variant leading-relaxed">
-                          <span className="text-primary font-bold">Automatic Folder Creation:</span> Due to browser security, web apps <span className="underline italic">cannot</span> automatically create folders in your "Documents" without your permission.
-                        </p>
-                        <div className="flex gap-2 p-2 bg-on-surface/5 rounded-lg border border-white/5">
-                          <Monitor size={14} className="text-primary shrink-0" />
-                          <p className="text-[9px] text-on-surface-variant font-medium">To save directly to a specific folder on your drive, you MUST click the folder icon above and "Allow" access when prompted by your system.</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant px-1">Batch Archive Name</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text"
-                          value={folderPath}
-                          onChange={(e) => {
-                            setFolderPath(e.target.value);
-                            setDirectoryHandle(null);
-                          }}
-                          placeholder="e.g. APOY_Exports"
-                          className="flex-1 bg-surface-container-high border border-white/5 rounded-xl px-4 py-2.5 text-xs text-on-surface focus:outline-none focus:border-primary/50 transition-all font-mono"
-                        />
-                      </div>
-                      {!directoryHandle && (
-                        <p className="text-[9px] text-on-surface-variant/60 px-1 italic">
-                          Since direct access is currently locked, files will be bundled into <span className="text-primary font-mono">{folderPath}.zip</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="text-[9px] text-on-surface-variant/60 leading-relaxed px-1">
-                    <span className="text-primary font-bold">PRO TIP:</span> Selecting a folder allows direct pixel saving. If your browser doesn't support direct access, photos will be prefixed with this path in your Downloads.
-                  </p>
                 </div>
               )}
 
