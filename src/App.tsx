@@ -297,19 +297,23 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Three-line attribution footer — each line uses a distinct font style */}
-      <footer className="hidden md:flex flex-col h-14 shrink-0 items-center justify-center gap-0.5 border-t border-outline-variant/5 bg-surface/60 px-6">
-        {/* Line 1 — credit/attribution (monospace italic) */}
+      {/* Four-line attribution footer — each line uses a distinct font style */}
+      <footer className="hidden md:flex flex-col h-20 shrink-0 items-center justify-center gap-0.5 border-t border-outline-variant/5 bg-surface/60 px-6">
+        {/* Line 1 — credit/attribution (monospace italic, muted) */}
         <span className="font-mono italic text-[10px] text-on-surface-variant/50 leading-tight">
           © 2026-Made by Fajrianor
         </span>
-        {/* Line 2 — brand headline (Manrope bold, primary color) */}
+        {/* Line 2 — brand headline (Manrope extrabold, primary purple) */}
         <span className="font-headline font-extrabold text-[12px] text-primary tracking-tight leading-tight">
           APOY-Add Photos, Originate Yours
         </span>
-        {/* Line 3 — institutional label (Inter uppercase, wide tracking) */}
+        {/* Line 3 — institutional label (Inter semibold uppercase, wide tracking) */}
         <span className="font-label font-semibold text-[8px] text-on-surface-variant/60 tracking-[0.25em] uppercase leading-tight">
           Pusat Humas dan Keterbukaan Informasi
+        </span>
+        {/* Line 4 — university name (serif italic, secondary) */}
+        <span className="font-serif italic text-[10px] text-secondary/70 leading-tight">
+          UIN Antasari Banjarmasin
         </span>
       </footer>
     </div>
