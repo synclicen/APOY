@@ -27,9 +27,13 @@ import {
   ShieldCheck,
   Camera,
   Maximize2,
+  Scissors,
+  Eraser,
+  Sparkles,
 } from 'lucide-react';
 import { Photo, AnalysisSettings } from '../types';
 import { cn } from '../lib/utils';
+import { removeBackground } from '../lib/bg-removal';
 
 interface AnalysisViewProps {
   photos: Photo[];
@@ -58,12 +62,52 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
     selectedCleanBase,
     customFrameUrl,
   } = settings;
+  const bgRemovalEnabled = settings.bgRemovalEnabled;
+  const bgRemovalTolerance = settings.bgRemovalTolerance;
+  const bgRemovalSmoothness = settings.bgRemovalSmoothness;
 
   const updateSetting = (key: keyof AnalysisSettings, value: unknown) => {
     onSettingsChange({ ...settings, [key]: value });
   };
 
   const selectedPhotos = photos.filter((p) => p.selected);
+
+  // Background removal: produce transparent-PNG versions of the selected
+  // photos whenever the feature is enabled or its parameters change.
+  const [bgRemovedUrls, setBgRemovedUrls] = React.useState<Record<string, string>>({});
+  const [isProcessingBg, setIsProcessingBg] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!bgRemovalEnabled) {
+      // Clean up any previously generated blob URLs when disabled
+      Object.values(bgRemovedUrls).forEach((url) => URL.revokeObjectURL(url as string));
+      setBgRemovedUrls({});
+      return;
+    }
+    let cancelled = false;
+    setIsProcessingBg(true);
+    (async () => {
+      const results: Record<string, string> = {};
+      for (const photo of selectedPhotos) {
+        const url = await removeBackground(photo.url, {
+          tolerance: bgRemovalTolerance,
+          smoothness: bgRemovalSmoothness,
+        });
+        if (cancelled) return;
+        if (url) results[photo.id] = url;
+      }
+      if (!cancelled) {
+        // Revoke old urls before swapping
+        Object.values(bgRemovedUrls).forEach((url) => URL.revokeObjectURL(url as string));
+        setBgRemovedUrls(results);
+        setIsProcessingBg(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bgRemovalEnabled, bgRemovalTolerance, bgRemovalSmoothness, selectedPhotos.length]);
 
   const steps = [
     { id: 'platform', title: 'Target Platform', description: 'Where will these photos be published?' },
@@ -112,6 +156,9 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
       watermarkPosition: 'bottom-right',
       watermarkColor: '#ffffff',
       frameHistory: [],
+      bgRemovalEnabled: false,
+      bgRemovalTolerance: 32,
+      bgRemovalSmoothness: 18,
     });
     setAiCommand('');
     setActiveStep(0);
@@ -186,6 +233,115 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
               {/* Step Content Rendering */}
               {activeStep === 0 && (
                 <div className="space-y-8">
+                  {/* Background Removal — Transparent PNG (before Clean Base) */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Eraser size={16} className="text-primary" />
+                        <span className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                          Background Removal
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[8px] font-bold">
+                          TRANSPARENT PNG
+                        </span>
+                        {isProcessingBg && (
+                          <Loader2 size={11} className="text-primary animate-spin" />
+                        )}
+                      </div>
+                      <button
+                        onClick={() => updateSetting('bgRemovalEnabled', !bgRemovalEnabled)}
+                        className={cn(
+                          'w-10 h-5 rounded-full relative flex items-center px-1 transition-all',
+                          bgRemovalEnabled ? 'bg-primary' : 'bg-outline/30'
+                        )}
+                        aria-label="Toggle background removal"
+                      >
+                        <motion.div
+                          animate={{ x: bgRemovalEnabled ? 20 : 0 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                          className="w-3 h-3 bg-white rounded-full"
+                        />
+                      </button>
+                    </div>
+
+                    {bgRemovalEnabled && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-4 overflow-hidden"
+                      >
+                        <p className="text-[10px] text-on-surface-variant leading-relaxed">
+                          Removes the dominant edge color (great for strong/bright
+                          backgrounds) and exports a transparent PNG with smooth
+                          feathered edges. Best on photos with a uniform background.
+                        </p>
+
+                        {/* Tolerance slider */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-on-surface-variant/70 flex items-center gap-1.5">
+                              <Scissors size={11} /> Removal Tolerance
+                            </span>
+                            <span className="text-[10px] font-mono text-primary">
+                              {bgRemovalTolerance}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="5"
+                            max="80"
+                            value={bgRemovalTolerance}
+                            onChange={(e) =>
+                              updateSetting('bgRemovalTolerance', parseInt(e.target.value))
+                            }
+                            className="w-full accent-primary"
+                          />
+                          <p className="text-[9px] text-on-surface-variant/50">
+                            Higher = remove more colors near the background. Too high may eat into the subject.
+                          </p>
+                        </div>
+
+                        {/* Smoothness slider */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-on-surface-variant/70 flex items-center gap-1.5">
+                              <Sparkles size={11} /> Edge Smoothness
+                            </span>
+                            <span className="text-[10px] font-mono text-primary">
+                              {bgRemovalSmoothness}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="60"
+                            value={bgRemovalSmoothness}
+                            onChange={(e) =>
+                              updateSetting('bgRemovalSmoothness', parseInt(e.target.value))
+                            }
+                            className="w-full accent-primary"
+                          />
+                          <p className="text-[9px] text-on-surface-variant/50">
+                            Feathered alpha band at edges for smooth, anti-aliased cutouts.
+                          </p>
+                        </div>
+
+                        {/* Status / hint */}
+                        <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl flex gap-2">
+                          <Pipette size={12} className="text-primary shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-on-surface-variant leading-snug">
+                            Background sampled automatically from the 4 corners &amp; edges.
+                            {selectedPhotos.length === 0
+                              ? ' Select at least one photo to preview.'
+                              : isProcessingBg
+                                ? ' Processing photos…'
+                                : ` ${Object.keys(bgRemovedUrls).length}/${selectedPhotos.length} photos processed.`}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <ShieldCheck size={16} className="text-primary" />
@@ -500,6 +656,12 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                     AI Preset: <span className="text-secondary font-bold">[{selectedPreset}]</span> • Style:{' '}
                     <strong>{selectedStyle}</strong>
                   </p>
+                  {bgRemovalEnabled && (
+                    <p className="text-primary">
+                      BG Removal: <strong>ON</strong> • Tolerance {bgRemovalTolerance} • Smooth {bgRemovalSmoothness}{' '}
+                      <span className="text-on-surface-variant/60">(→ transparent PNG)</span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -557,10 +719,22 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                     selectedFrame === 'cinema' && 'py-8 px-0'
                   )}
                 >
+                  {/* Checkerboard backdrop when background removal is active */}
+                  {bgRemovalEnabled && bgRemovedUrls[photo.id] && (
+                    <div
+                      className="absolute inset-0 z-[5] opacity-30"
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(45deg, #555 25%, transparent 25%), linear-gradient(-45deg, #555 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #555 75%), linear-gradient(-45deg, transparent 75%, #555 75%)',
+                        backgroundSize: '20px 20px',
+                        backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+                      }}
+                    />
+                  )}
+
                   {/* Blurred Background for Contain Mode */}
-                  {settings.objectFit === 'contain' && (
+                  {settings.objectFit === 'contain' && !bgRemovalEnabled && (
                     <div className="absolute inset-0 z-0 overflow-hidden">
-                      { }
                       <img
                         src={photo.url}
                         alt=""
@@ -570,9 +744,8 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                     </div>
                   )}
 
-                  { }
                   <img
-                    src={photo.url}
+                    src={bgRemovalEnabled && bgRemovedUrls[photo.id] ? bgRemovedUrls[photo.id] : photo.url}
                     alt={photo.name}
                     className={cn(
                       'w-full h-full transition-all duration-1000 relative z-10',

@@ -103,6 +103,9 @@ export default function App() {
     watermarkColor: '#ffffff',
     customFrameUrl: undefined,
     frameHistory: [],
+    bgRemovalEnabled: false,
+    bgRemovalTolerance: 32,
+    bgRemovalSmoothness: 18,
   });
 
   const analyzePhotos = useCallback((newPhotos: Photo[]) => {

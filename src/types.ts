@@ -44,4 +44,8 @@ export interface AnalysisSettings {
   watermarkColor: string;
   customFrameUrl?: string;
   frameHistory: string[];
+  // Background removal (transparent PNG output)
+  bgRemovalEnabled: boolean;
+  bgRemovalTolerance: number;
+  bgRemovalSmoothness: number;
 }
