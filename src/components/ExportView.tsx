@@ -54,6 +54,9 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
   const [isExported, setIsExported] = useState(false);
   const [exportName, setExportName] = useState('My-APOY-Masterpiece');
   const [folderPath, setFolderPath] = useState('APOY_Exports');
+  // Naming mode: 'custom' = use exportName as prefix, 'original' = keep
+  // each photo's original filename (only the extension changes).
+  const [namingMode, setNamingMode] = useState<'custom' | 'original'>('custom');
   const [progress, setProgress] = useState(0);
   const [currentProcessingIndex, setCurrentProcessingIndex] = useState(0);
 
@@ -157,6 +160,21 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
   // When bg removal is enabled, force PNG format (JPG doesn't support
   // transparency) and disable frames that would fill a solid background.
   const effectiveFormat = bgRemovalEnabled ? 'PNG' : selectedFormat;
+
+  // Compute the output file name for a given photo + index based on the
+  // naming mode:
+  //  - 'custom':   `${exportName}-${index}.${ext}`  (or just exportName if 1 photo)
+  //  - 'original': the photo's original filename with the extension swapped
+  //                to the effective format (e.g. "Mountain Peak.RAW" → "Mountain Peak.png")
+  const getOutputFileName = (photo: Photo, index: number, ext: string): string => {
+    if (namingMode === 'original') {
+      // Strip the existing extension from the original name
+      const baseName = photo.name.replace(/\.[^/.]+$/, '') || `photo-${index + 1}`;
+      return `${baseName}.${ext}`;
+    }
+    const suffix = selectedPhotos.length > 1 ? `-${index + 1}` : '';
+    return `${exportName}${suffix}.${ext}`;
+  };
 
   const previewPhoto = selectedPhotos[0] || photos[0];
 
@@ -445,15 +463,13 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                 return;
               }
 
-              const suffix = selectedPhotos.length > 1 ? `-${index + 1}` : '';
-              const fileName = `${exportName}${suffix}.${extension}`;
+              const fileName = getOutputFileName(photo, index, extension);
 
               try {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                const cleanPath = folderPath.replace(/[^a-zA-Z0-9_\-\/]/g, '_').replace(/\//g, '_');
-                link.download = destination === 'local' ? `${cleanPath}_${fileName}` : fileName;
+                link.download = fileName;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -497,8 +513,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
         setCurrentProcessingIndex(i);
         try {
           const blob = (await processAndDownload(selectedPhotos[i], i, true)) as Blob;
-          const suffix = selectedPhotos.length > 1 ? `-${i + 1}` : '';
-          const fileName = `${exportName}${suffix}.${extension}`;
+          const fileName = getOutputFileName(selectedPhotos[i], i, extension);
           const fileHandle = await handle.getFileHandle(fileName, { create: true });
           const writable = await fileHandle.createWritable();
           await writable.write(blob);
@@ -515,8 +530,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
         try {
           if (useZipFallback && zip) {
             const blob = (await processAndDownload(selectedPhotos[i], i, true)) as Blob;
-            const suffix = selectedPhotos.length > 1 ? `-${i + 1}` : '';
-            const fileName = `${exportName}${suffix}.${extension}`;
+            const fileName = getOutputFileName(selectedPhotos[i], i, extension);
             zip.file(fileName, blob);
           } else {
             await processAndDownload(selectedPhotos[i], i);
@@ -1215,22 +1229,76 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
           <section className="bg-surface-container-low rounded-2xl p-4 md:p-5 border border-white/5 shrink-0">
             <h2 className="font-headline text-lg font-bold mb-4 text-on-surface">File Naming</h2>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
-                  Project / Batch Name
-                </label>
-                <input
-                  type="text"
-                  value={exportName}
-                  onChange={(e) => setExportName(e.target.value)}
-                  placeholder="Enter custom name..."
-                  className="w-full bg-surface-container-high border border-white/5 rounded-xl px-4 py-3 text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-all"
-                />
+              {/* Naming mode selector */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setNamingMode('custom')}
+                  className={cn(
+                    'py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border active:scale-95',
+                    namingMode === 'custom'
+                      ? 'bg-primary text-on-primary border-primary shadow-lg'
+                      : 'bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest'
+                  )}
+                >
+                  Custom Name
+                </button>
+                <button
+                  onClick={() => setNamingMode('original')}
+                  className={cn(
+                    'py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border active:scale-95',
+                    namingMode === 'original'
+                      ? 'bg-primary text-on-primary border-primary shadow-lg'
+                      : 'bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest'
+                  )}
+                >
+                  Keep Original
+                </button>
               </div>
+              <p className="text-[9px] text-on-surface-variant/50">
+                {namingMode === 'custom'
+                  ? 'Use a custom prefix for all exported photos (with sequential numbering).'
+                  : 'Keep each photo\u2019s original filename \u2014 only the extension changes to the export format.'}
+              </p>
+
+              {/* Custom name input (only when mode = custom) */}
+              {namingMode === 'custom' && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
+                    Custom Name / Prefix
+                  </label>
+                  <input
+                    type="text"
+                    value={exportName}
+                    onChange={(e) => setExportName(e.target.value)}
+                    placeholder="Enter custom name..."
+                    className="w-full bg-surface-container-high border border-white/5 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-all"
+                  />
+                </div>
+              )}
+
+              {/* Example preview */}
               <div className="p-3 bg-surface-container-highest/10 rounded-xl border border-white/5">
                 <p className="text-[10px] text-on-surface-variant italic">
-                  Example: {exportName}
-                  {selectedPhotos.length > 1 ? '-1' : ''}.{effectiveFormat.toLowerCase()}
+                  {namingMode === 'custom' ? (
+                    <>
+                      Example:{' '}
+                      <span className="text-primary font-mono">
+                        {exportName || 'My-APOY-Masterpiece'}
+                        {selectedPhotos.length > 1 ? '-1' : ''}.{effectiveFormat.toLowerCase()}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Example:{' '}
+                      <span className="text-primary font-mono">
+                        {selectedPhotos[0]
+                          ? (selectedPhotos[0].name.replace(/\.[^/.]+$/, '') || 'photo') +
+                            '.' +
+                            effectiveFormat.toLowerCase()
+                          : 'original-name.' + effectiveFormat.toLowerCase()}
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -1367,40 +1435,42 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                     )}
                   </div>
 
-                  <div className="space-y-2 pt-2">
-                    <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant px-1">
-                      {dirHandle ? 'File Name Prefix' : 'Archive Output Name'}
-                    </label>
-                    <input
-                      type="text"
-                      value={folderPath}
-                      onChange={(e) => {
-                        setFolderPath(e.target.value);
-                      }}
-                      placeholder="e.g. APOY_Exports"
-                      className="w-full bg-surface-container-high border border-white/5 rounded-xl px-4 py-2.5 text-xs text-on-surface focus:outline-none focus:border-primary/50 transition-all font-mono"
-                    />
-                    <p className="text-[9px] text-on-surface-variant/60 px-1 italic">
-                      {dirHandle ? (
-                        <>
-                          Each photo saved as{' '}
-                          <span className="text-green-400 font-mono">
-                            {folderPath}
-                            {selectedPhotos.length > 1 ? '-1' : ''}.{effectiveFormat.toLowerCase()}
-                          </span>{' '}
-                          inside <span className="text-green-400 font-mono">{folderName}</span>
-                        </>
-                      ) : (
-                        <>
-                          Output will be saved to your device as{' '}
-                          <span className="text-primary font-mono">
-                            {folderPath}
-                            {selectedPhotos.length > 1 ? '.zip' : ''}
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  </div>
+                  {/* ZIP archive name (only shown when no folder is selected
+                      AND multiple photos will be bundled into a ZIP) */}
+                  {!dirHandle && selectedPhotos.length > 1 && (
+                    <div className="space-y-2 pt-2">
+                      <label className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant px-1">
+                        ZIP Archive Name
+                      </label>
+                      <input
+                        type="text"
+                        value={folderPath}
+                        onChange={(e) => {
+                          setFolderPath(e.target.value);
+                        }}
+                        placeholder="e.g. APOY_Exports"
+                        className="w-full bg-surface-container-high border border-white/5 rounded-xl px-4 py-2.5 text-xs text-on-surface focus:outline-none focus:border-primary/50 transition-all font-mono"
+                      />
+                      <p className="text-[9px] text-on-surface-variant/60 px-1 italic">
+                        Multiple photos will be bundled into{' '}
+                        <span className="text-primary font-mono">{folderPath}.zip</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {/* When a folder IS selected, individual files are written
+                      directly — show what they'll be named based on the
+                      File Naming section above (no separate prefix here). */}
+                  {dirHandle && (
+                    <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-xl">
+                      <p className="text-[10px] text-green-400 leading-snug">
+                        Files saved directly to{' '}
+                        <span className="font-mono font-bold">{folderName}</span> using the
+                        naming from the File Naming section above
+                        {namingMode === 'original' ? ' (original filenames).' : ' (custom prefix).'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
