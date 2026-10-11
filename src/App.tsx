@@ -115,6 +115,8 @@ export default function App() {
     bgRemovalEnabled: false,
     bgRemovalTolerance: 32,
     bgRemovalSmoothness: 18,
+    bgRemovalMode: 'auto',
+    bgRemovalColor: null,
   });
 
   const analyzePhotos = useCallback(

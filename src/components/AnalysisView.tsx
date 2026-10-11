@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { Photo, AnalysisSettings } from '../types';
 import { cn } from '../lib/utils';
-import { removeBackground } from '../lib/bg-removal';
+import { removeBackground, pickColorAt, hexToRgb } from '../lib/bg-removal';
 
 interface AnalysisViewProps {
   photos: Photo[];
@@ -65,6 +65,8 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
   const bgRemovalEnabled = settings.bgRemovalEnabled;
   const bgRemovalTolerance = settings.bgRemovalTolerance;
   const bgRemovalSmoothness = settings.bgRemovalSmoothness;
+  const bgRemovalMode = settings.bgRemovalMode;
+  const bgRemovalColor = settings.bgRemovalColor;
 
   const updateSetting = (key: keyof AnalysisSettings, value: unknown) => {
     onSettingsChange({ ...settings, [key]: value });
@@ -76,6 +78,15 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
   // photos whenever the feature is enabled or its parameters change.
   const [bgRemovedUrls, setBgRemovedUrls] = React.useState<Record<string, string>>({});
   const [isProcessingBg, setIsProcessingBg] = React.useState(false);
+  // Eyedropper state: when active, the next click on a preview image picks a color
+  const [eyedropperActive, setEyedropperActive] = React.useState(false);
+  const [eyedropperTarget, setEyedropperTarget] = React.useState<string | null>(null);
+
+  // Compute the target color tuple to pass into removeBackground
+  const targetColorTuple = React.useMemo<[number, number, number] | null>(() => {
+    if (bgRemovalMode === 'auto' || !bgRemovalColor) return null;
+    return hexToRgb(bgRemovalColor);
+  }, [bgRemovalMode, bgRemovalColor]);
 
   React.useEffect(() => {
     if (!bgRemovalEnabled) {
@@ -92,12 +103,12 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
         const url = await removeBackground(photo.url, {
           tolerance: bgRemovalTolerance,
           smoothness: bgRemovalSmoothness,
+          targetColor: targetColorTuple,
         });
         if (cancelled) return;
         if (url) results[photo.id] = url;
       }
       if (!cancelled) {
-        // Revoke old urls before swapping
         Object.values(bgRemovedUrls).forEach((url) => URL.revokeObjectURL(url as string));
         setBgRemovedUrls(results);
         setIsProcessingBg(false);
@@ -107,7 +118,7 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bgRemovalEnabled, bgRemovalTolerance, bgRemovalSmoothness, selectedPhotos.length]);
+  }, [bgRemovalEnabled, bgRemovalTolerance, bgRemovalSmoothness, bgRemovalMode, bgRemovalColor, selectedPhotos.length]);
 
   const steps = [
     { id: 'platform', title: 'Target Platform', description: 'Where will these photos be published?' },
@@ -115,6 +126,32 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
     { id: 'presets', title: 'Pro Presets', description: 'Apply industry-standard event styles.' },
     { id: 'command', title: 'AI Command', description: 'Final custom refinements.' },
   ];
+
+  // Eyedropper: when active, clicking a preview image picks the color at that
+  // point and switches the bg-removal mode to 'eyedropper' with that color.
+  const handlePreviewClick = async (e: React.MouseEvent<HTMLImageElement>, photo: Photo) => {
+    if (!eyedropperActive) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const img = e.currentTarget;
+    const rect = img.getBoundingClientRect();
+    const scaleX = (img.naturalWidth || img.width) / rect.width;
+    const scaleY = (img.naturalHeight || img.height) / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const result = await pickColorAt(photo.url, x, y, 4);
+    if (result) {
+      // Combine both updates into a single onSettingsChange call to avoid
+      // stale-closure overwrite when two rapid updateSetting calls happen.
+      onSettingsChange({
+        ...settings,
+        bgRemovalColor: result.hex,
+        bgRemovalMode: 'eyedropper',
+      });
+      setEyedropperTarget(result.hex);
+    }
+    setEyedropperActive(false);
+  };
 
   const handleNext = () => {
     if (activeStep < steps.length - 1) {
@@ -159,6 +196,8 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
       bgRemovalEnabled: false,
       bgRemovalTolerance: 32,
       bgRemovalSmoothness: 18,
+      bgRemovalMode: 'auto',
+      bgRemovalColor: null,
     });
     setAiCommand('');
     setActiveStep(0);
@@ -271,10 +310,129 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                         className="space-y-4 overflow-hidden"
                       >
                         <p className="text-[10px] text-on-surface-variant leading-relaxed">
-                          Removes the dominant edge color (great for strong/bright
-                          backgrounds) and exports a transparent PNG with smooth
-                          feathered edges. Best on photos with a uniform background.
+                          Removes the background color and exports a transparent PNG with
+                          smooth feathered edges. Best on photos with a uniform background.
                         </p>
+
+                        {/* Color removal mode selector */}
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest">
+                            Color to Remove
+                          </span>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: 'auto', label: 'Auto' },
+                              { id: 'preset', label: 'Presets' },
+                              { id: 'eyedropper', label: 'Eyedropper' },
+                            ].map((mode) => (
+                              <button
+                                key={mode.id}
+                                onClick={() => updateSetting('bgRemovalMode', mode.id)}
+                                className={cn(
+                                  'py-2 rounded-lg text-[10px] font-bold uppercase tracking-tight transition-all border active:scale-95',
+                                  bgRemovalMode === mode.id
+                                    ? 'bg-primary text-on-primary border-primary shadow-lg'
+                                    : 'bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest'
+                                )}
+                              >
+                                {mode.label}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[9px] text-on-surface-variant/50">
+                            {bgRemovalMode === 'auto' &&
+                              'Auto samples the 4 corners & edges of each photo.'}
+                            {bgRemovalMode === 'preset' &&
+                              'Pick a preset background color (white, black, green screen, etc.).'}
+                            {bgRemovalMode === 'eyedropper' &&
+                              'Click the eyedropper, then click any spot on a preview photo to sample its color.'}
+                          </p>
+                        </div>
+
+                        {/* Preset color swatches */}
+                        {bgRemovalMode === 'preset' && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {[
+                                { hex: '#ffffff', label: 'White' },
+                                { hex: '#000000', label: 'Black' },
+                                { hex: '#00b14f', label: 'Green Screen' },
+                                { hex: '#0047bb', label: 'Blue Screen' },
+                                { hex: '#ff0000', label: 'Red' },
+                                { hex: '#ffd500', label: 'Yellow' },
+                                { hex: '#f0f0f0', label: 'Light Grey' },
+                                { hex: '#333333', label: 'Dark Grey' },
+                              ].map((sw) => (
+                                <button
+                                  key={sw.hex}
+                                  onClick={() => updateSetting('bgRemovalColor', sw.hex)}
+                                  title={sw.label}
+                                  className={cn(
+                                    'w-8 h-8 rounded-lg border-2 transition-all active:scale-90',
+                                    bgRemovalColor === sw.hex
+                                      ? 'border-primary scale-110 shadow-lg'
+                                      : 'border-outline-variant/30 hover:border-primary/50'
+                                  )}
+                                  style={{ backgroundColor: sw.hex }}
+                                />
+                              ))}
+                            </div>
+                            {/* Custom color picker input */}
+                            <div className="flex items-center gap-2">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="color"
+                                  value={bgRemovalColor || '#ffffff'}
+                                  onChange={(e) => updateSetting('bgRemovalColor', e.target.value)}
+                                  className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border border-outline-variant/30"
+                                />
+                                <span className="text-[10px] font-bold text-on-surface-variant/70">
+                                  Custom
+                                </span>
+                              </label>
+                              {bgRemovalColor && (
+                                <span className="text-[10px] font-mono text-primary ml-auto">
+                                  {bgRemovalColor.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Eyedropper control */}
+                        {bgRemovalMode === 'eyedropper' && (
+                          <div className="space-y-2">
+                            <button
+                              onClick={() => setEyedropperActive((v) => !v)}
+                              className={cn(
+                                'w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all active:scale-95 border',
+                                eyedropperActive
+                                  ? 'bg-primary text-on-primary border-primary shadow-lg animate-pulse'
+                                  : 'bg-surface-container-high text-on-surface-variant hover:text-primary border-outline-variant/20'
+                              )}
+                            >
+                              <Pipette size={14} />
+                              {eyedropperActive ? 'Click a photo to sample…' : 'Activate Eyedropper'}
+                            </button>
+                            {bgRemovalColor && (
+                              <div className="flex items-center gap-2 p-2 rounded-lg bg-surface-container-high">
+                                <div
+                                  className="w-6 h-6 rounded border border-outline-variant/30 shrink-0"
+                                  style={{ backgroundColor: bgRemovalColor }}
+                                />
+                                <span className="text-[10px] font-mono text-primary">
+                                  {bgRemovalColor.toUpperCase()}
+                                </span>
+                                <button
+                                  onClick={() => updateSetting('bgRemovalColor', null)}
+                                  className="ml-auto text-[9px] text-on-surface-variant/50 hover:text-error uppercase tracking-wider"
+                                >
+                                  Clear
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Tolerance slider */}
                         <div className="space-y-2">
@@ -297,7 +455,7 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                             className="w-full accent-primary"
                           />
                           <p className="text-[9px] text-on-surface-variant/50">
-                            Higher = remove more colors near the background. Too high may eat into the subject.
+                            Higher = remove more colors near the target. Too high may eat into the subject.
                           </p>
                         </div>
 
@@ -330,7 +488,11 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                         <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl flex gap-2">
                           <Pipette size={12} className="text-primary shrink-0 mt-0.5" />
                           <p className="text-[10px] text-on-surface-variant leading-snug">
-                            Background sampled automatically from the 4 corners &amp; edges.
+                            {bgRemovalMode === 'auto'
+                              ? 'Sampling background automatically from corners & edges.'
+                              : bgRemovalColor
+                                ? `Removing color ${bgRemovalColor.toUpperCase()}.`
+                                : 'No color selected — pick a preset or use the eyedropper.'}
                             {selectedPhotos.length === 0
                               ? ' Select at least one photo to preview.'
                               : isProcessingBg
@@ -747,9 +909,11 @@ export function AnalysisView({ photos, onViewChange, settings, onSettingsChange 
                   <img
                     src={bgRemovalEnabled && bgRemovedUrls[photo.id] ? bgRemovedUrls[photo.id] : photo.url}
                     alt={photo.name}
+                    onClick={(e) => handlePreviewClick(e, photo)}
                     className={cn(
                       'w-full h-full transition-all duration-1000 relative z-10',
-                      settings.objectFit === 'cover' ? 'object-cover' : 'object-contain'
+                      settings.objectFit === 'cover' ? 'object-cover' : 'object-contain',
+                      eyedropperActive && 'cursor-crosshair'
                     )}
                     referrerPolicy="no-referrer"
                     style={{

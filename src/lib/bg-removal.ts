@@ -14,6 +14,12 @@ export interface BgRemovalOptions {
   tolerance: number;
   /** 0-100, width of the feathered alpha band at edges (higher = softer edges) */
   smoothness: number;
+  /**
+   * Optional target color to remove as [R, G, B] (0-255 each).
+   * When provided, this color is used directly instead of auto-sampling
+   * the corners/edges. Pass null/undefined for auto-sampling mode.
+   */
+  targetColor?: [number, number, number] | null;
 }
 
 /**
@@ -38,27 +44,31 @@ export async function removeBackground(
     const w = canvas.width;
     const h = canvas.height;
 
-    // 1. Sample background color from the 4 corners + edge midpoints.
-    // These are the most likely background regions.
-    const samples: Array<[number, number, number]> = [];
-    const samplePoints = [
-      [0, 0],
-      [w - 1, 0],
-      [0, h - 1],
-      [w - 1, h - 1],
-      [Math.floor(w / 2), 0],
-      [Math.floor(w / 2), h - 1],
-      [0, Math.floor(h / 2)],
-      [w - 1, Math.floor(h / 2)],
-    ];
-    for (const [x, y] of samplePoints) {
-      const idx = (y * w + x) * 4;
-      samples.push([data[idx], data[idx + 1], data[idx + 2]]);
+    // 1. Determine the target background color.
+    // If a targetColor was supplied (preset or eyedropper), use it directly.
+    // Otherwise, auto-sample from the 4 corners + edge midpoints.
+    let bg: [number, number, number];
+    if (options.targetColor && options.targetColor.length === 3) {
+      bg = options.targetColor;
+    } else {
+      const samples: Array<[number, number, number]> = [];
+      const samplePoints = [
+        [0, 0],
+        [w - 1, 0],
+        [0, h - 1],
+        [w - 1, h - 1],
+        [Math.floor(w / 2), 0],
+        [Math.floor(w / 2), h - 1],
+        [0, Math.floor(h / 2)],
+        [w - 1, Math.floor(h / 2)],
+      ];
+      for (const [x, y] of samplePoints) {
+        const idx = (y * w + x) * 4;
+        samples.push([data[idx], data[idx + 1], data[idx + 2]]);
+      }
+      // Cluster samples: pick the median of each channel for robustness.
+      bg = medianColor(samples);
     }
-
-    // 2. Cluster samples: pick the most common-ish color as the bg candidate.
-    // Use the median of each channel for robustness against noise.
-    const bg = medianColor(samples);
 
     // 3. Map tolerance (0-100) to a color-distance threshold.
     // Max possible squared distance in RGB is 3*255^2 ≈ 195075.
@@ -132,4 +142,74 @@ function medianColor(samples: Array<[number, number, number]>): [number, number,
   const bs = samples.map((s) => s[2]).sort((a, b) => a - b);
   const mid = Math.floor(samples.length / 2);
   return [rs[mid], gs[mid], bs[mid]];
+}
+
+/**
+ * Eyedropper: pick the average color of a small region around (x, y) in the
+ * source image. Returns an [R, G, B] tuple (0-255) and a hex string.
+ *
+ * @param imageUrl  source image URL
+ * @param x         click X in source-image pixel coordinates
+ * @param y         click Y in source-image pixel coordinates
+ * @param radius    sample a (2*radius+1)² neighborhood and average it
+ */
+export async function pickColorAt(
+  imageUrl: string,
+  x: number,
+  y: number,
+  radius = 3
+): Promise<{ rgb: [number, number, number]; hex: string } | null> {
+  try {
+    const img = await loadImage(imageUrl);
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+
+    ctx.drawImage(img, 0, 0);
+    const cx = Math.max(0, Math.min(canvas.width - 1, Math.round(x)));
+    const cy = Math.max(0, Math.min(canvas.height - 1, Math.round(y)));
+
+    // Single getImageData for the whole neighborhood (efficient + CORS-safe
+    // because loadImage sets crossOrigin='anonymous').
+    const sx = Math.max(0, cx - radius);
+    const sy = Math.max(0, cy - radius);
+    const sw = Math.min(canvas.width - sx, radius * 2 + 1);
+    const sh = Math.min(canvas.height - sy, radius * 2 + 1);
+    const block = ctx.getImageData(sx, sy, sw, sh).data;
+    let r = 0,
+      g = 0,
+      b = 0,
+      count = 0;
+    for (let i = 0; i < block.length; i += 4) {
+      r += block[i];
+      g += block[i + 1];
+      b += block[i + 2];
+      count++;
+    }
+    if (count === 0) return null;
+    const avg: [number, number, number] = [
+      Math.round(r / count),
+      Math.round(g / count),
+      Math.round(b / count),
+    ];
+    const hex =
+      '#' +
+      avg
+        .map((c) => c.toString(16).padStart(2, '0'))
+        .join('');
+    return { rgb: avg, hex };
+  } catch (e) {
+    console.error('pickColorAt failed:', e);
+    return null;
+  }
+}
+
+/** Convert a hex color string (#rrggbb) to an [R, G, B] tuple. */
+export function hexToRgb(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }

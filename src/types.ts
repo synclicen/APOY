@@ -48,4 +48,6 @@ export interface AnalysisSettings {
   bgRemovalEnabled: boolean;
   bgRemovalTolerance: number;
   bgRemovalSmoothness: number;
+  bgRemovalMode: 'auto' | 'preset' | 'eyedropper';
+  bgRemovalColor: string | null;
 }
