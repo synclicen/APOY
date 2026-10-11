@@ -66,34 +66,33 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
     <div
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
-      className="h-full min-h-0 bg-glass rounded-3xl flex flex-col items-center justify-center p-6 md:p-8 text-center group hover:border-primary/40 transition-all duration-500 cursor-pointer border-2 border-dashed border-outline-variant/20"
+      className="h-full min-h-0 bg-glass rounded-2xl flex flex-col items-center justify-center p-4 md:p-5 text-center group hover:border-primary/40 transition-all duration-500 cursor-pointer border-2 border-dashed border-outline-variant/20"
     >
-      <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 shadow-inner">
-        <CloudUpload className="text-primary" size={40} />
+      <div className="w-14 h-14 bg-surface-container-high rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-500 shadow-inner">
+        <CloudUpload className="text-primary" size={28} />
       </div>
-      <h3 className="font-headline font-bold text-xl mb-2 text-on-surface">
+      <h3 className="font-headline font-bold text-base mb-1 text-on-surface">
         Unlimited RAW Import
       </h3>
-      <p className="text-on-surface-variant text-sm mb-6 leading-relaxed max-w-[280px]">
-        Supports .ARW, .CR3, .NEF, and .DNG.{' '}
-        <span className="text-primary font-bold">No batch limits</span>—import as many files as
-        your hardware can handle.
+      <p className="text-on-surface-variant text-[11px] mb-4 leading-relaxed max-w-[240px]">
+        Supports .ARW, .CR3, .NEF, .DNG.{' '}
+        <span className="text-primary font-bold">No batch limits.</span>
       </p>
 
       {folderInfo && (
-        <div className="mb-4 px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2 text-green-400 max-w-[280px]">
-          <FolderOpen size={14} className="shrink-0" />
-          <span className="text-[10px] font-bold uppercase tracking-wider truncate">
+        <div className="mb-3 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2 text-green-400 max-w-[240px]">
+          <FolderOpen size={12} className="shrink-0" />
+          <span className="text-[9px] font-bold uppercase tracking-wider truncate">
             {folderInfo.name}
           </span>
-          <span className="text-[10px] text-on-surface-variant ml-auto shrink-0">
+          <span className="text-[9px] text-on-surface-variant ml-auto shrink-0">
             {folderInfo.count} photo{folderInfo.count === 1 ? '' : 's'}
           </span>
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-[280px]">
-        <label className="btn-primary cursor-pointer flex-1 w-full sm:w-auto">
+      <div className="flex flex-col gap-2 w-full max-w-[240px]">
+        <label className="btn-primary cursor-pointer flex-1 w-full !px-4 !py-2 !text-xs">
           Browse Files
           <input
             ref={fileInputRef}
@@ -105,9 +104,9 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
           />
         </label>
 
-        <label className="flex-1 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2 px-6 py-3 rounded-full font-bold tracking-wide bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest hover:text-primary active:scale-95 transition-all border border-outline-variant/20">
-          <FolderOpen size={18} />
-          <span className="text-sm">Select Folder</span>
+        <label className="w-full cursor-pointer flex items-center justify-center gap-2 px-4 py-2 rounded-full font-bold tracking-wide bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest hover:text-primary active:scale-95 transition-all border border-outline-variant/20 text-xs">
+          <FolderOpen size={15} />
+          <span>Select Folder</span>
           <input
             ref={folderInputRef}
             type="file"
@@ -119,9 +118,8 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
         </label>
       </div>
 
-      <p className="text-[9px] text-on-surface-variant/40 mt-4 max-w-[260px] leading-relaxed">
-        <span className="text-primary/60">Select Folder</span> imports every supported image
-        inside a folder (recursively) — perfect for batch RAW imports.
+      <p className="text-[8px] text-on-surface-variant/40 mt-3 max-w-[220px] leading-relaxed">
+        <span className="text-primary/60">Select Folder</span> imports all images in a folder.
       </p>
     </div>
   );

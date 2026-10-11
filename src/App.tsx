@@ -8,7 +8,7 @@ import { PhotoGrid } from './components/PhotoGrid';
 import { AnalysisView } from './components/AnalysisView';
 import { ExportView } from './components/ExportView';
 import { Photo, ToolType, ViewType, AnalysisSettings } from './types';
-import { ArrowRight, Sparkles, ChevronDown, Check, RefreshCw } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
@@ -75,16 +75,7 @@ export default function App() {
   const [activeTool, setActiveTool] = useState<ToolType | null>('enhance');
   const [currentView, setCurrentView] = useState<ViewType>('import');
   const [isAiSmartSelection, setIsAiSmartSelection] = useState(true);
-  const [aiSelectionLimit, setAiSelectionLimit] = useState(10);
-  const [showLimitDropdown, setShowLimitDropdown] = useState(false);
-  const [isReRunning, setIsReRunning] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
-  // Selection limit options: 1-50 (every number), then multiples of 50 up to 500
-  const AI_LIMIT_OPTIONS = [
-    ...Array.from({ length: 50 }, (_, i) => i + 1),
-    100, 150, 200, 250, 300, 350, 400, 450, 500,
-  ];
 
   const [analysisSettings, setAnalysisSettings] = useState<AnalysisSettings>({
     selectedPlatform: 'ig',
@@ -119,57 +110,29 @@ export default function App() {
     bgRemovalColor: null,
   });
 
-  const analyzePhotos = useCallback(
-    (newPhotos: Photo[]) => {
-      setPhotos((prev) =>
-        prev.map((p) => (newPhotos.find((np) => np.id === p.id) ? { ...p, status: 'analyzing' } : p))
-      );
+  const analyzePhotos = useCallback((newPhotos: Photo[]) => {
+    setPhotos((prev) =>
+      prev.map((p) => (newPhotos.find((np) => np.id === p.id) ? { ...p, status: 'analyzing' } : p))
+    );
 
-      setTimeout(() => {
-        // Rank new photos by score and pick the top N within the limit
-        const ranked = [...newPhotos].sort((a, b) => (b.score || 0) - (a.score || 0));
-        const limit = Math.min(aiSelectionLimit, ranked.length);
-        const bestPickIds = new Set(ranked.slice(0, limit).map((p) => p.id));
-
-        setPhotos((prev) =>
-          prev.map((p) => {
-            const isNew = newPhotos.find((np) => np.id === p.id);
-            if (isNew) {
-              const isBestPick = bestPickIds.has(p.id);
-              return {
-                ...p,
-                status: 'ready',
-                isAiBestPick: isBestPick,
-                selected: isBestPick,
-              };
-            }
-            return p;
-          })
-        );
-      }, 2000);
-    },
-    [aiSelectionLimit]
-  );
-
-  // Re-run AI selection across ALL photos — picks the top N by score globally
-  const reRunAiSelection = useCallback(() => {
-    setIsReRunning(true);
-    setPhotos((prev) => prev.map((p) => ({ ...p, status: 'analyzing' })));
     setTimeout(() => {
-      setPhotos((prev) => {
-        const ranked = [...prev].sort((a, b) => (b.score || 0) - (a.score || 0));
-        const limit = Math.min(aiSelectionLimit, ranked.length);
-        const bestPickIds = new Set(ranked.slice(0, limit).map((p) => p.id));
-        return prev.map((p) => ({
-          ...p,
-          status: 'ready' as const,
-          isAiBestPick: bestPickIds.has(p.id),
-          selected: bestPickIds.has(p.id),
-        }));
-      });
-      setIsReRunning(false);
-    }, 1500);
-  }, [aiSelectionLimit]);
+      setPhotos((prev) =>
+        prev.map((p) => {
+          const isNew = newPhotos.find((np) => np.id === p.id);
+          if (isNew) {
+            const isBestPick = Math.random() > 0.6;
+            return {
+              ...p,
+              status: 'ready',
+              isAiBestPick: isBestPick,
+              selected: isBestPick,
+            };
+          }
+          return p;
+        })
+      );
+    }, 2000);
+  }, []);
 
   const handleUpload = useCallback(
     (files: FileList) => {
@@ -237,7 +200,7 @@ export default function App() {
       <TopBar currentView={currentView} onViewChange={setCurrentView} />
       <Sidebar activeTool={activeTool} onToolSelect={setActiveTool} />
 
-      <main className="flex-1 min-h-0 md:ml-24 mt-16 px-4 md:px-6 pt-4 pb-24 md:pb-3 w-full max-w-[1700px] mx-auto flex flex-col overflow-hidden">
+      <main className="flex-1 min-h-0 md:ml-16 mt-14 px-3 md:px-4 pt-3 pb-20 md:pb-2 w-full max-w-[1600px] mx-auto flex flex-col overflow-hidden">
         <AnimatePresence mode="wait">
           {currentView === 'import' && (
             <motion.div
@@ -248,132 +211,58 @@ export default function App() {
               transition={{ duration: 0.3 }}
               className="flex-1 min-h-0 flex flex-col overflow-hidden"
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4 shrink-0">
-                <div className="max-w-2xl">
-                  <h1 className="font-headline font-extrabold text-2xl md:text-4xl tracking-tight text-on-surface mb-1">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 gap-3 shrink-0">
+                <div className="flex-1 min-w-0">
+                  <h1 className="font-headline font-extrabold text-xl md:text-2xl tracking-tight text-on-surface mb-0.5">
                     Import <span className="text-gradient">Masterpieces.</span>
                   </h1>
-                  <p className="text-on-surface-variant text-sm md:text-base mb-3">
+                  <p className="text-on-surface-variant text-xs md:text-sm mb-2">
                     Drop your RAW files here. Our AI will curate your best shots automatically.
                   </p>
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
                       onClick={handleSelectAll}
-                      className="px-4 py-2 bg-surface-container-high rounded-xl text-xs font-bold uppercase tracking-widest text-primary hover:bg-surface-container-highest active:scale-95 transition-all border border-primary/10"
+                      className="px-3 py-1.5 bg-surface-container-high rounded-lg text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-surface-container-highest active:scale-95 transition-all border border-primary/10"
                     >
                       {photos.every((p) => p.selected) ? 'Deselect All' : 'Select All'}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2 shrink-0">
-                  <div className="flex items-center gap-3 bg-surface-container-low p-2 rounded-full border border-outline-variant/10 w-full md:w-auto justify-between md:justify-start">
-                    <div className="flex items-center gap-3 px-4">
-                      <Sparkles
-                        className={cn('transition-colors', isAiSmartSelection ? 'text-primary' : 'text-on-surface-variant')}
-                        size={18}
-                        fill={isAiSmartSelection ? 'currentColor' : 'none'}
-                      />
-                      <span className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
-                        AI Smart Selection
-                      </span>
-                    </div>
-
-                    {/* Limit selector — elegant dropdown */}
-                    {isAiSmartSelection && (
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowLimitDropdown((v) => !v)}
-                          className="flex items-center gap-2 px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest rounded-full text-[10px] font-bold uppercase tracking-widest text-primary transition-all active:scale-95 border border-primary/20"
-                        >
-                          <span className="opacity-70">Pick</span>
-                          <span className="text-primary font-black">{aiSelectionLimit}</span>
-                          <ChevronDown
-                            size={12}
-                            className={cn('transition-transform', showLimitDropdown && 'rotate-180')}
-                          />
-                        </button>
-
-                        <AnimatePresence>
-                          {showLimitDropdown && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setShowLimitDropdown(false)} />
-                              <motion.div
-                                initial={{ opacity: 0, y: -8, scale: 0.97 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: -8, scale: 0.97 }}
-                                transition={{ duration: 0.15 }}
-                                className="absolute right-0 top-full mt-2 w-44 bg-surface-container-low rounded-2xl border border-outline-variant/20 shadow-2xl z-50 overflow-hidden"
-                              >
-                                <div className="px-3 py-2 border-b border-outline-variant/10">
-                                  <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">
-                                    Max Photos to Select
-                                  </span>
-                                </div>
-                                <div className="max-h-64 overflow-y-auto custom-scrollbar py-1">
-                                  {AI_LIMIT_OPTIONS.map((n) => (
-                                    <button
-                                      key={n}
-                                      onClick={() => {
-                                        setAiSelectionLimit(n);
-                                        setShowLimitDropdown(false);
-                                      }}
-                                      className={cn(
-                                        'w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors',
-                                        n === aiSelectionLimit
-                                          ? 'bg-primary/15 text-primary font-bold'
-                                          : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
-                                      )}
-                                    >
-                                      <span className="font-mono">{n}</span>
-                                      {n === aiSelectionLimit && <Check size={12} />}
-                                    </button>
-                                  ))}
-                                </div>
-                              </motion.div>
-                            </>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    )}
-
-                    {/* Re-run button */}
-                    {isAiSmartSelection && (
-                      <button
-                        onClick={reRunAiSelection}
-                        disabled={isReRunning || photos.length === 0}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high hover:bg-surface-container-highest rounded-full text-[10px] font-bold uppercase tracking-widest text-on-surface-variant hover:text-primary transition-all active:scale-95 disabled:opacity-40 border border-outline-variant/10"
-                        title="Re-run AI selection on all photos"
-                      >
-                        <RefreshCw size={12} className={cn(isReRunning && 'animate-spin')} />
-                        <span className="hidden sm:inline">{isReRunning ? 'Selecting…' : 'Re-run'}</span>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => setIsAiSmartSelection(!isAiSmartSelection)}
-                      className={cn(
-                        'w-12 h-6 rounded-full relative flex items-center transition-all duration-300 px-1 shrink-0',
-                        isAiSmartSelection ? 'bg-primary-container' : 'bg-surface-container-highest'
-                      )}
-                    >
-                      <motion.div
-                        animate={{ x: isAiSmartSelection ? 24 : 0 }}
-                        className={cn(
-                          'w-4 h-4 rounded-full shadow-sm',
-                          isAiSmartSelection ? 'bg-on-primary-container' : 'bg-on-surface-variant'
-                        )}
-                      />
-                    </button>
+                <div className="flex items-center gap-3 bg-surface-container-low p-1.5 rounded-full border border-outline-variant/10 w-full md:w-auto justify-between md:justify-start shrink-0">
+                  <div className="flex items-center gap-2 px-3">
+                    <Sparkles
+                      className={cn('transition-colors', isAiSmartSelection ? 'text-primary' : 'text-on-surface-variant')}
+                      size={15}
+                      fill={isAiSmartSelection ? 'currentColor' : 'none'}
+                    />
+                    <span className="text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">
+                      AI Smart Selection
+                    </span>
                   </div>
+                  <button
+                    onClick={() => setIsAiSmartSelection(!isAiSmartSelection)}
+                    className={cn(
+                      'w-10 h-5 rounded-full relative flex items-center transition-all duration-300 px-1',
+                      isAiSmartSelection ? 'bg-primary-container' : 'bg-surface-container-highest'
+                    )}
+                  >
+                    <motion.div
+                      animate={{ x: isAiSmartSelection ? 20 : 0 }}
+                      className={cn(
+                        'w-3.5 h-3.5 rounded-full shadow-sm',
+                        isAiSmartSelection ? 'bg-on-primary-container' : 'bg-on-surface-variant'
+                      )}
+                    />
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-12 gap-4 md:gap-6 items-stretch flex-1 min-h-0">
-                <div className="col-span-12 lg:col-span-4 min-h-0">
+              <div className="grid grid-cols-12 gap-3 md:gap-4 items-stretch flex-1 min-h-0">
+                <div className="col-span-12 lg:col-span-3 min-h-0">
                   <UploadZone onUpload={handleUpload} />
                 </div>
-                <div className="col-span-12 lg:col-span-8 min-h-0">
+                <div className="col-span-12 lg:col-span-9 min-h-0">
                   <PhotoGrid
                     photos={photos}
                     onToggleSelect={toggleSelect}
@@ -383,9 +272,9 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex justify-end items-center gap-4 md:gap-8 flex-wrap mt-4 shrink-0">
+              <div className="flex justify-end items-center gap-3 md:gap-5 flex-wrap mt-3 shrink-0">
                 {selectedCount > 0 && (
-                  <span className="text-on-surface-variant font-medium text-sm">
+                  <span className="text-on-surface-variant font-medium text-xs">
                     {selectedCount} RAW files selected for analysis
                   </span>
                 )}
@@ -393,12 +282,12 @@ export default function App() {
                   disabled={selectedCount === 0}
                   onClick={() => setCurrentView('analysis')}
                   className={cn(
-                    'btn-primary text-base px-8 py-3 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95',
+                    'btn-primary text-sm px-6 py-2.5 group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95',
                     selectedCount > 0 && 'hover:shadow-[0px_0px_40px_rgba(201,190,255,0.3)]'
                   )}
                 >
                   Move to Analysis
-                  <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+                  <ArrowRight className="group-hover:translate-x-1 transition-transform" size={18} />
                 </button>
               </div>
             </motion.div>
