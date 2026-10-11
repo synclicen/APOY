@@ -126,6 +126,82 @@ export async function removeBackground(
   }
 }
 
+/**
+ * Apply background removal directly to an existing canvas's pixel data.
+ * This is used by the Export view to remove the background from the
+ * high-resolution export canvas (after the image + filters are drawn,
+ * but before frames/watermarks are applied).
+ *
+ * Mutates the canvas in place — does NOT return a new canvas.
+ */
+export function applyBgRemovalToCanvas(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  options: BgRemovalOptions
+): void {
+  const w = canvas.width;
+  const h = canvas.height;
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+
+  // Determine target color
+  let bg: [number, number, number];
+  if (options.targetColor && options.targetColor.length === 3) {
+    bg = options.targetColor;
+  } else {
+    const samples: Array<[number, number, number]> = [];
+    const samplePoints = [
+      [0, 0],
+      [w - 1, 0],
+      [0, h - 1],
+      [w - 1, h - 1],
+      [Math.floor(w / 2), 0],
+      [Math.floor(w / 2), h - 1],
+      [0, Math.floor(h / 2)],
+      [w - 1, Math.floor(h / 2)],
+    ];
+    for (const [x, y] of samplePoints) {
+      const idx = (y * w + x) * 4;
+      samples.push([data[idx], data[idx + 1], data[idx + 2]]);
+    }
+    bg = medianColor(samples);
+  }
+
+  const tolNormalized = Math.max(0, Math.min(100, options.tolerance)) / 100;
+  const threshold = Math.pow(tolNormalized * 180, 2);
+  const smoothNormalized = Math.max(0, Math.min(100, options.smoothness)) / 100;
+  const featherWidth = smoothNormalized * 120;
+  const featherWidthSq = featherWidth * featherWidth;
+
+  // Walk every pixel and compute alpha
+  for (let i = 0; i < data.length; i += 4) {
+    const dr = data[i] - bg[0];
+    const dg = data[i + 1] - bg[1];
+    const db = data[i + 2] - bg[2];
+    const distSq = dr * dr + dg * dg + db * db;
+
+    if (distSq <= threshold) {
+      data[i + 3] = 0;
+    } else if (featherWidth > 0 && distSq <= threshold + featherWidthSq) {
+      const t = (distSq - threshold) / featherWidthSq;
+      data[i + 3] = Math.round(Math.sqrt(Math.max(0, Math.min(1, t))) * 255);
+    }
+  }
+
+  // Edge de-fringing
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a > 0 && a < 255) {
+      const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      data[i] = Math.round(data[i] * 0.7 + gray * 0.3);
+      data[i + 1] = Math.round(data[i + 1] * 0.7 + gray * 0.3);
+      data[i + 2] = Math.round(data[i + 2] * 0.7 + gray * 0.3);
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();

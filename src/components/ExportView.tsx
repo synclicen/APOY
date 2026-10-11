@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import JSZip from 'jszip';
 import {
@@ -18,9 +18,12 @@ import {
   AlertCircle,
   X,
   FolderCheck,
+  History,
+  ChevronDown,
 } from 'lucide-react';
 import { Photo, AnalysisSettings } from '../types';
 import { cn } from '../lib/utils';
+import { applyBgRemovalToCanvas, hexToRgb, removeBackground } from '../lib/bg-removal';
 
 // Minimal type declarations for the File System Access API
 // (not in default TS lib for all targets).
@@ -63,7 +66,54 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
   const [isPickingFolder, setIsPickingFolder] = useState(false);
   const [folderError, setFolderError] = useState<string>('');
 
+  // Export history (persisted to Turso)
+  const [history, setHistory] = useState<
+    Array<{
+      id: string;
+      created_at: number;
+      format: string;
+      quality: string;
+      photo_count: number;
+      file_size: string | null;
+      destination: string | null;
+    }>
+  >([]);
+  const [showHistory, setShowHistory] = useState(false);
+
   const selectedPhotos = photos.filter((p) => p.selected);
+
+  // Load export history from Turso on mount
+  useEffect(() => {
+    fetch('/api/history')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setHistory(data.history);
+      })
+      .catch(() => {});
+  }, []);
+
+  const recordExport = async () => {
+    try {
+      await fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          format: selectedFormat,
+          quality: selectedQuality,
+          photo_count: selectedPhotos.length,
+          file_size: estimatedSize,
+          destination,
+          settings,
+        }),
+      });
+      // Refresh history
+      const res = await fetch('/api/history');
+      const data = await res.json();
+      if (data.success) setHistory(data.history);
+    } catch {
+      /* non-fatal */
+    }
+  };
 
   const formatSizeMapping: Record<string, Record<string, string>> = {
     JPG: { Low: '1.2 MB', Medium: '2.5 MB', High: '4.2 MB', Ultra: '8.1 MB' },
@@ -92,8 +142,48 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
     selectedCleanBase,
     customFrameUrl,
   } = settings;
+  const bgRemovalEnabled = settings.bgRemovalEnabled;
+  const bgRemovalMode = settings.bgRemovalMode;
+  const bgRemovalColor = settings.bgRemovalColor;
+  const bgRemovalTolerance = settings.bgRemovalTolerance;
+  const bgRemovalSmoothness = settings.bgRemovalSmoothness;
+
+  // Compute the target color tuple for bg removal (null = auto-sample)
+  const bgRemovalTargetColor = React.useMemo(() => {
+    if (bgRemovalMode === 'auto' || !bgRemovalColor) return null;
+    return hexToRgb(bgRemovalColor);
+  }, [bgRemovalMode, bgRemovalColor]);
+
+  // When bg removal is enabled, force PNG format (JPG doesn't support
+  // transparency) and disable frames that would fill a solid background.
+  const effectiveFormat = bgRemovalEnabled ? 'PNG' : selectedFormat;
 
   const previewPhoto = selectedPhotos[0] || photos[0];
+
+  // Pre-process the preview photo for the before/after slider when bg
+  // removal is enabled, so the "edited" side shows the transparent result.
+  const [bgRemovedPreviewUrl, setBgRemovedPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!bgRemovalEnabled || !previewPhoto?.url) {
+      setBgRemovedPreviewUrl(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const url = await removeBackground(previewPhoto.url, {
+        tolerance: bgRemovalTolerance,
+        smoothness: bgRemovalSmoothness,
+        targetColor: bgRemovalTargetColor,
+      });
+      if (!cancelled) setBgRemovedPreviewUrl(url);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bgRemovalEnabled, bgRemovalTolerance, bgRemovalSmoothness, bgRemovalTargetColor, previewPhoto?.url]);
+
+  // The URL to show in the "edited" side of the slider
+  const editedPreviewUrl = bgRemovalEnabled && bgRemovedPreviewUrl ? bgRemovedPreviewUrl : previewPhoto?.url;
 
   const activeFilterItems = [
     'brightness(1)',
@@ -171,7 +261,8 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
         const startY = selectedFrame === 'cinema' ? canvas.height * 0.15 : inset;
 
         // Fill background with black for professional look behind the frame
-        if (selectedFrame !== 'none') {
+        // Skip when bg removal is enabled (we need transparency, not black fill)
+        if (selectedFrame !== 'none' && !bgRemovalEnabled) {
           ctx.fillStyle = 'black';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
@@ -240,6 +331,19 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
         }
 
         ctx.filter = 'none';
+
+        // Apply background removal to the canvas pixel data (transparent PNG)
+        if (bgRemovalEnabled) {
+          try {
+            applyBgRemovalToCanvas(ctx, canvas, {
+              tolerance: bgRemovalTolerance,
+              smoothness: bgRemovalSmoothness,
+              targetColor: bgRemovalTargetColor,
+            });
+          } catch (e) {
+            console.error('Bg removal in export failed (non-fatal):', e);
+          }
+        }
 
         const drawWatermarkAndFinalize = () => {
           if (settings.watermarkEnabled && settings.watermarkText) {
@@ -325,7 +429,8 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
         function finalizeCanvas() {
           const qualityVal =
             selectedQuality === 'Ultra' ? 1.0 : selectedQuality === 'High' ? 0.9 : selectedQuality === 'Medium' ? 0.7 : 0.5;
-          const extension = selectedFormat.toLowerCase();
+          // Use effectiveFormat (forces PNG when bg removal is enabled for transparency)
+          const extension = effectiveFormat.toLowerCase();
           const mimeType = `image/${extension === 'jpg' ? 'jpeg' : extension}`;
 
           canvas.toBlob(
@@ -382,7 +487,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
     const useZipFallback = !useDirHandle && destination === 'local' && selectedPhotos.length > 1;
     const zip = useZipFallback ? new JSZip() : null;
 
-    const extension = selectedFormat.toLowerCase();
+    const extension = effectiveFormat.toLowerCase();
 
     if (useDirHandle) {
       const handle = dirHandle as {
@@ -440,6 +545,8 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
     setProgress(100);
     setIsExporting(false);
     setIsExported(true);
+    // Record this export to Turso-backed history
+    recordExport();
     setTimeout(() => {
       setIsExported(false);
       setProgress(0);
@@ -546,7 +653,15 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                 {/* Edited (Top) */}
                 <div
                   className="absolute inset-0 overflow-hidden border-r-2 border-white/50 z-10"
-                  style={{ width: `${sliderPos}%` }}
+                  style={{
+                    width: `${sliderPos}%`,
+                    ...(bgRemovalEnabled && {
+                      backgroundImage:
+                        'linear-gradient(45deg, #444 25%, transparent 25%), linear-gradient(-45deg, #444 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #444 75%), linear-gradient(-45deg, transparent 75%, #444 75%)',
+                      backgroundSize: '20px 20px',
+                      backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+                    }),
+                  }}
                 >
                   <div
                     className={cn(
@@ -561,7 +676,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                     {settings.objectFit === 'contain' && (
                        
                       <img
-                        src={previewPhoto?.url}
+                        src={editedPreviewUrl}
                         className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-110"
                         alt=""
                         style={{ filter: activeFilter }}
@@ -570,7 +685,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                     )}
                     { }
                     <img
-                      src={previewPhoto?.url}
+                      src={editedPreviewUrl}
                       className={cn(
                         'w-full h-full transition-all duration-300 relative z-10',
                         settings.objectFit === 'cover' ? 'object-cover' : 'object-contain'
@@ -995,17 +1110,24 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                     <button
                       key={f}
                       onClick={() => setSelectedFormat(f)}
+                      disabled={bgRemovalEnabled && f !== 'PNG'}
                       className={cn(
                         'flex-1 py-3 rounded-xl text-xs font-bold transition-all border active:scale-95',
-                        selectedFormat === f
+                        effectiveFormat === f
                           ? 'bg-primary text-on-primary border-primary shadow-lg'
-                          : 'bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest'
+                          : 'bg-surface-container-high border-transparent text-on-surface-variant hover:bg-surface-container-highest',
+                        bgRemovalEnabled && f !== 'PNG' && 'opacity-40 cursor-not-allowed'
                       )}
                     >
                       {f}
                     </button>
                   ))}
                 </div>
+                {bgRemovalEnabled && (
+                  <p className="text-[9px] text-primary font-bold uppercase tracking-wider">
+                    PNG forced (transparency required for bg removal)
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -1038,7 +1160,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                    {selectedFormat} Format
+                    {effectiveFormat} Format
                   </p>
                   <p className="text-[10px] font-medium text-on-surface-variant/60">
                     {selectedQuality} Quality Level
@@ -1108,7 +1230,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
               <div className="p-3 bg-surface-container-highest/10 rounded-xl border border-white/5">
                 <p className="text-[10px] text-on-surface-variant italic">
                   Example: {exportName}
-                  {selectedPhotos.length > 1 ? '-1' : ''}.{selectedFormat.toLowerCase()}
+                  {selectedPhotos.length > 1 ? '-1' : ''}.{effectiveFormat.toLowerCase()}
                 </p>
               </div>
             </div>
@@ -1264,7 +1386,7 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                           Each photo saved as{' '}
                           <span className="text-green-400 font-mono">
                             {folderPath}
-                            {selectedPhotos.length > 1 ? '-1' : ''}.{selectedFormat.toLowerCase()}
+                            {selectedPhotos.length > 1 ? '-1' : ''}.{effectiveFormat.toLowerCase()}
                           </span>{' '}
                           inside <span className="text-green-400 font-mono">{folderName}</span>
                         </>
@@ -1326,6 +1448,73 @@ export function ExportView({ photos, settings, onSettingsChange }: ExportViewPro
                   : `Export ${selectedPhotos.length} ${selectedPhotos.length === 1 ? 'Photo' : 'Photos'}`}
             </span>
           </button>
+
+          {/* Export History (persisted in Turso) */}
+          <section className="bg-surface-container-low rounded-2xl border border-white/5 shrink-0 overflow-hidden">
+            <button
+              onClick={() => setShowHistory((v) => !v)}
+              className="w-full flex items-center justify-between p-4 hover:bg-surface-container-high/40 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <History size={15} className="text-primary" />
+                </div>
+                <div className="text-left">
+                  <h2 className="font-headline text-base font-bold">Export History</h2>
+                  <p className="text-[10px] text-on-surface-variant">
+                    {history.length} export{history.length === 1 ? '' : 's'} recorded
+                  </p>
+                </div>
+              </div>
+              <motion.div animate={{ rotate: showHistory ? 180 : 0 }} className="text-on-surface-variant">
+                <ChevronDown size={16} />
+              </motion.div>
+            </button>
+            <AnimatePresence>
+              {showHistory && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden border-t border-white/5"
+                >
+                  <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                    {history.length === 0 ? (
+                      <div className="p-6 text-center text-[11px] text-on-surface-variant/50">
+                        No exports yet — your exports will be logged here.
+                      </div>
+                    ) : (
+                      history.map((h) => (
+                        <div
+                          key={h.id}
+                          className="flex items-center gap-3 p-3 border-b border-white/5 last:border-0 hover:bg-surface-container-high/30"
+                        >
+                          <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                            <Download size={11} className="text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-bold text-on-surface">
+                              {h.format} • {h.quality} • {h.photo_count} photo{h.photo_count === 1 ? '' : 's'}
+                            </p>
+                            <p className="text-[9px] text-on-surface-variant">
+                              {new Date(h.created_at).toLocaleString()}
+                              {h.file_size ? ` • ${h.file_size}` : ''}
+                              {h.destination ? ` • ${h.destination}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="p-2 bg-surface-container/50 border-t border-white/5">
+                    <p className="text-[9px] text-on-surface-variant/50 text-center">
+                      Cloud-synced via Turso
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </section>
         </div>
       </div>
 
